@@ -12,7 +12,8 @@ defmodule EsotericDisplayMgr.Application do
       EsotericDisplayMgr.Repo,
       {Ecto.Migrator,
        repos: Application.fetch_env!(:esoteric_display_mgr, :ecto_repos), skip: skip_migrations?()},
-      {DNSCluster, query: Application.get_env(:esoteric_display_mgr, :dns_cluster_query) || :ignore},
+      {DNSCluster,
+       query: Application.get_env(:esoteric_display_mgr, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: EsotericDisplayMgr.PubSub},
       # Start a worker by calling: EsotericDisplayMgr.Worker.start_link(arg)
       # {EsotericDisplayMgr.Worker, arg},
