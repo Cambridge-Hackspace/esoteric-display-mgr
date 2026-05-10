@@ -17,16 +17,22 @@ defmodule EsotericDisplayMgrWeb.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :api_auth do
+    plug :accepts, ["json"]
+    plug EsotericDisplayMgrWeb.Plugs.ApiAuth
+  end
+
   scope "/", EsotericDisplayMgrWeb do
     pipe_through :browser
 
     get "/", PageController, :home
   end
 
-  # Other scopes may use custom stacks.
-  # scope "/api", EsotericDisplayMgrWeb do
-  #   pipe_through :api
-  # end
+  scope "/api", EsotericDisplayMgrWeb do
+    pipe_through :api_auth
+
+    # TODO protected API routes go here
+  end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
   if Application.compile_env(:esoteric_display_mgr, :dev_routes) do
