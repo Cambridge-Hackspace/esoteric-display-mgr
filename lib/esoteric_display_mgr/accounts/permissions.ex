@@ -12,7 +12,8 @@ defmodule EsotericDisplayMgr.Accounts.Permissions do
     "stream:connect",
     "stream:manage",
     "priority:manage",
-    "priority:override"
+    "priority:override",
+    "roles:manage"
   ]
 
   @doc """

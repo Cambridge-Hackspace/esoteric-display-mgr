@@ -24,6 +24,16 @@ defmodule EsotericDisplayMgr.Accounts.User do
   def registration_changeset(user, attrs, opts \\ []) do
     user
     |> email_changeset(attrs, opts)
+    |> password_changeset(attrs, opts)
+    |> generate_api_key()
+  end
+
+  @doc """
+  A changeset strictly for rotating the API key.
+  """
+  def api_key_changeset(user) do
+    user
+    |> change(%{api_key: nil})
     |> generate_api_key()
   end
 

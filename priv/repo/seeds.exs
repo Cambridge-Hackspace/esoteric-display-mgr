@@ -77,6 +77,7 @@ IO.puts("Roles seeded.")
 # 2. Create the primary admin user.
 
 admin_email = "admin@chack.local"
+admin_password = "SuperSecretPassword123!"
 
 if Repo.get_by(User, email: admin_email) == nil do
   admin_role = roles["Admin"]
@@ -85,13 +86,14 @@ if Repo.get_by(User, email: admin_email) == nil do
     %User{}
     |> Repo.preload(:roles)
     |> User.registration_changeset(%{
-      "email" => admin_email
+      "email" => admin_email,
+      "password" => admin_password
     })
     |> Ecto.Changeset.put_assoc(:roles, [admin_role])
     |> Ecto.Changeset.put_change(:confirmed_at, DateTime.utc_now(:second))
     |> Repo.insert()
 
-  IO.puts("Primary admin user created: #{admin_email}")
+  IO.puts("Primary admin user created: #{admin_email} | #{admin_password}")
 else
   IO.puts("Primary admin user already exists.")
 end

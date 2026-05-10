@@ -5,8 +5,7 @@ defmodule EsotericDisplayMgr.Accounts do
 
   import Ecto.Query, warn: false
   alias EsotericDisplayMgr.Repo
-
-  alias EsotericDisplayMgr.Accounts.{User, UserToken, UserNotifier}
+  alias EsotericDisplayMgr.Accounts.{User, Role, UserToken, UserNotifier}
 
   ## Database getters
 
@@ -58,7 +57,7 @@ defmodule EsotericDisplayMgr.Accounts do
       ** (Ecto.NoResultsError)
 
   """
-  def get_user!(id), do: Repo.get!(User, id)
+  def get_user!(_scope \\ nil, id), do: Repo.get!(User, id) |> Repo.preload(:roles)
 
   ## User registration
 
@@ -294,4 +293,113 @@ defmodule EsotericDisplayMgr.Accounts do
       end
     end)
   end
+
+  ## User management
+
+  def list_users(_scope \\ nil) do
+    User
+    |> Repo.all()
+    |> Repo.preload(:roles)
+  end
+
+  @doc """
+  Updates a user's roles after validating permissions.
+  """
+  def update_user_roles(user, role_ids, current_user) do
+    valid_ids = filter_assignable_roles(current_user, role_ids)
+    roles = Repo.all(from r in Role, where: r.id in ^valid_ids)
+
+    user
+    |> Repo.preload(:roles)
+    |> Ecto.Changeset.change()
+    |> Ecto.Changeset.put_assoc(:roles, roles)
+    |> Repo.update()
+  end
+
+  @doc """
+  Rotates the user's API key using the dedicated changeset.
+  """
+  def rotate_api_key(%User{} = user) do
+    user
+    |> User.api_key_changeset()
+    |> Repo.update()
+  end
+
+  def change_user(_scope \\ nil, %User{} = user, attrs \\ %{}) do
+    User.email_changeset(user, attrs, validate_unique: false)
+  end
+
+  def update_user(_scope \\ nil, %User{} = user, attrs) do
+    user
+    |> User.email_changeset(attrs)
+    |> Repo.update()
+  end
+
+  def create_user_by_admin(_scope \\ nil, attrs) do
+    %User{}
+    |> User.email_changeset(attrs)
+    |> User.password_changeset(attrs)
+    |> User.registration_changeset(attrs)
+    |> Repo.insert()
+  end
+
+  def delete_user(_scope \\ nil, %User{} = user) do
+    Repo.delete(user)
+  end
+
+  ## Role management
+
+  def list_roles(_scope \\ nil), do: Repo.all(Role)
+
+  def get_role!(_scope \\ nil, id), do: Repo.get!(Role, id)
+
+  def change_role(_scope \\ nil, %Role{} = role, attrs \\ %{}) do
+    import Ecto.Changeset
+
+    role
+    |> cast(attrs, [:name, :permissions])
+    |> validate_required([:name])
+  end
+
+  def update_role(scope \\ nil, %Role{} = role, attrs) do
+    change_role(scope, role, attrs)
+    |> Repo.update()
+  end
+
+  def create_role(scope \\ nil, attrs) do
+    change_role(scope, %Role{}, attrs)
+    |> Repo.insert()
+  end
+
+  def delete_role(_scope \\ nil, %Role{} = role) do
+    Repo.delete(role)
+  end
+
+  @doc """
+  Security check: Ensures a manager can only assign a role if they already
+  possess all the permissions that the target role grants.
+  """
+  def filter_assignable_roles(current_user, requested_role_ids) do
+    my_permissions =
+      current_user.roles
+      |> Enum.flat_map(& &1.permissions)
+      |> MapSet.new()
+
+    requested_role_ids
+    |> Enum.map(&if is_binary(&1), do: String.to_integer(&1), else: &1)
+    |> Enum.filter(fn role_id ->
+      case Repo.get(Role, role_id) do
+        nil ->
+          false
+
+        role ->
+          role_permissions = MapSet.new(role.permissions)
+          MapSet.subset?(role_permissions, my_permissions)
+      end
+    end)
+  end
+
+  # Dummy PubSub subscriptions to satisfy the LiveView mount functions
+  def subscribe_roles(_scope \\ nil), do: :ok
+  def subscribe_users(_scope \\ nil), do: :ok
 end

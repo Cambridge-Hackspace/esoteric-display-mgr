@@ -67,6 +67,8 @@ defmodule EsotericDisplayMgrWeb.UserAuth do
   def fetch_current_scope_for_user(conn, _opts) do
     with {token, conn} <- ensure_user_token(conn),
          {user, token_inserted_at} <- Accounts.get_user_by_session_token(token) do
+      user = EsotericDisplayMgr.Repo.preload(user, :roles)
+
       conn
       |> assign(:current_scope, Scope.for_user(user))
       |> maybe_reissue_user_session_token(user, token_inserted_at)
@@ -230,6 +232,21 @@ defmodule EsotericDisplayMgrWeb.UserAuth do
     end
   end
 
+  def on_mount({:require_permission, permission}, _params, _session, socket) do
+    user = socket.assigns.current_scope.user
+
+    if EsotericDisplayMgr.Accounts.User.has_permission?(user, permission) do
+      {:cont, socket}
+    else
+      socket =
+        socket
+        |> Phoenix.LiveView.put_flash(:error, "You do not have permission to access this page.")
+        |> Phoenix.LiveView.redirect(to: ~p"/")
+
+      {:halt, socket}
+    end
+  end
+
   def on_mount(:require_sudo_mode, _params, session, socket) do
     socket = mount_current_scope(socket, session)
 
@@ -252,6 +269,7 @@ defmodule EsotericDisplayMgrWeb.UserAuth do
           Accounts.get_user_by_session_token(user_token)
         end || {nil, nil}
 
+      user = if user, do: EsotericDisplayMgr.Repo.preload(user, :roles), else: nil
       Scope.for_user(user)
     end)
   end

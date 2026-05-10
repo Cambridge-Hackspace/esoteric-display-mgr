@@ -16,6 +16,19 @@ defmodule EsotericDisplayMgrWeb.UserLive.Settings do
         </.header>
       </div>
 
+      <div class="mt-10 mb-10">
+        <.header>API Key</.header>
+        <div class="mt-4 flex items-center justify-between border border-base-300 p-4 rounded bg-base-200">
+          <code class="font-mono text-sm">{@current_scope.user.api_key}</code>
+          <.button
+            phx-click="rotate_token"
+            data-confirm="Invalidate current key and generate a new one?"
+          >
+            Rotate Key
+          </.button>
+        </div>
+      </div>
+
       <.form for={@email_form} id="email_form" phx-submit="update_email" phx-change="validate_email">
         <.input
           field={@email_form[:email]}
@@ -156,5 +169,18 @@ defmodule EsotericDisplayMgrWeb.UserLive.Settings do
       changeset ->
         {:noreply, assign(socket, password_form: to_form(changeset, action: :insert))}
     end
+  end
+
+  @impl true
+  def handle_event("rotate_token", _params, socket) do
+    {:ok, updated_user} = Accounts.rotate_api_key(socket.assigns.current_scope.user)
+
+    info =
+      "API key has been rotated! You will likely need to update any API clients you might have."
+
+    {:noreply,
+     socket
+     |> put_flash(:info, info)
+     |> assign(:current_scope, %{socket.assigns.current_scope | user: updated_user})}
   end
 end

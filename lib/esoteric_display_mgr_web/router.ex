@@ -62,6 +62,26 @@ defmodule EsotericDisplayMgrWeb.Router do
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
     end
 
+    live_session :manage_users,
+      on_mount: [
+        {EsotericDisplayMgrWeb.UserAuth, :require_authenticated},
+        {EsotericDisplayMgrWeb.UserAuth, {:require_permission, "users:manage"}}
+      ] do
+      live "/admin/users", UserLive.Index, :index
+      live "/admin/users/new", UserLive.Form, :new
+      live "/admin/users/:id/edit", UserLive.Form, :edit
+    end
+
+    live_session :manage_roles,
+      on_mount: [
+        {EsotericDisplayMgrWeb.UserAuth, :require_authenticated},
+        {EsotericDisplayMgrWeb.UserAuth, {:require_permission, "roles:manage"}}
+      ] do
+      live "/admin/roles", RoleLive.Index, :index
+      live "/admin/roles/new", RoleLive.Form, :new
+      live "/admin/roles/:id/edit", RoleLive.Form, :edit
+    end
+
     post "/users/update-password", UserSessionController, :update_password
   end
 
