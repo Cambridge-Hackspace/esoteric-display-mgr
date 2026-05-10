@@ -1,6 +1,8 @@
 defmodule EsotericDisplayMgrWeb.Router do
   use EsotericDisplayMgrWeb, :router
 
+  import EsotericDisplayMgrWeb.UserAuth
+
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -8,10 +10,16 @@ defmodule EsotericDisplayMgrWeb.Router do
     plug :put_root_layout, html: {EsotericDisplayMgrWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug :fetch_current_scope_for_user
   end
 
   pipeline :api do
     plug :accepts, ["json"]
+  end
+
+  pipeline :api_auth do
+    plug :accepts, ["json"]
+    plug EsotericDisplayMgrWeb.Plugs.ApiAuth
   end
 
   scope "/", EsotericDisplayMgrWeb do
@@ -20,10 +28,11 @@ defmodule EsotericDisplayMgrWeb.Router do
     get "/", PageController, :home
   end
 
-  # Other scopes may use custom stacks.
-  # scope "/api", EsotericDisplayMgrWeb do
-  #   pipe_through :api
-  # end
+  scope "/api", EsotericDisplayMgrWeb do
+    pipe_through :api_auth
+
+    # TODO protected API routes go here
+  end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
   if Application.compile_env(:esoteric_display_mgr, :dev_routes) do
@@ -40,5 +49,53 @@ defmodule EsotericDisplayMgrWeb.Router do
       live_dashboard "/dashboard", metrics: EsotericDisplayMgrWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
+  end
+
+  ## Authentication routes
+
+  scope "/", EsotericDisplayMgrWeb do
+    pipe_through [:browser, :require_authenticated_user]
+
+    live_session :require_authenticated_user,
+      on_mount: [{EsotericDisplayMgrWeb.UserAuth, :require_authenticated}] do
+      live "/users/settings", UserLive.Settings, :edit
+      live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
+    end
+
+    live_session :manage_users,
+      on_mount: [
+        {EsotericDisplayMgrWeb.UserAuth, :require_authenticated},
+        {EsotericDisplayMgrWeb.UserAuth, {:require_permission, "users:manage"}}
+      ] do
+      live "/admin/users", UserLive.Index, :index
+      live "/admin/users/new", UserLive.Form, :new
+      live "/admin/users/:id/edit", UserLive.Form, :edit
+    end
+
+    live_session :manage_roles,
+      on_mount: [
+        {EsotericDisplayMgrWeb.UserAuth, :require_authenticated},
+        {EsotericDisplayMgrWeb.UserAuth, {:require_permission, "roles:manage"}}
+      ] do
+      live "/admin/roles", RoleLive.Index, :index
+      live "/admin/roles/new", RoleLive.Form, :new
+      live "/admin/roles/:id/edit", RoleLive.Form, :edit
+    end
+
+    post "/users/update-password", UserSessionController, :update_password
+  end
+
+  scope "/", EsotericDisplayMgrWeb do
+    pipe_through [:browser]
+
+    live_session :current_user,
+      on_mount: [{EsotericDisplayMgrWeb.UserAuth, :mount_current_scope}] do
+      live "/users/register", UserLive.Registration, :new
+      live "/users/log-in", UserLive.Login, :new
+      live "/users/log-in/:token", UserLive.Confirmation, :new
+    end
+
+    post "/users/log-in", UserSessionController, :create
+    delete "/users/log-out", UserSessionController, :delete
   end
 end

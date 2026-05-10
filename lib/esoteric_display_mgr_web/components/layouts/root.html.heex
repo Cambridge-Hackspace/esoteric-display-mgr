@@ -28,7 +28,76 @@
       })();
     </script>
   </head>
-  <body>
-    {@inner_content}
+  <body class="bg-base-100 text-base-content min-h-screen flex flex-col">
+    <div class="navbar bg-base-200 border-b border-base-300 z-10 px-4 sm:px-6 lg:px-8">
+      <div class="flex-1 flex items-center">
+        <img src={~p"/images/chack_logo.svg"} alt="Cambridge Hackspace" class="h-8 w-8 mr-3" />
+        <a href="/" class="btn btn-ghost text-xl">Esoteric Display Manager</a>
+      </div>
+      <div class="flex-none">
+        <ul class="menu menu-horizontal px-1 gap-2 items-center">
+          <li class="hidden md:block">
+            <a href="https:/cambridgehackspace.com" target="_blank">Website</a>
+          </li>
+          <li class="hidden md:block">
+            <a href="https://github.com/Cambridge-Hackspace" target="_blank">GitHub</a>
+          </li>
+          <li><.theme_toggle /></li>
+
+          <div class="divider divider-horizontal mx-0 hidden sm:flex"></div>
+
+          <li :if={@current_scope}>
+            <span class="text-sm font-medium">{@current_scope.user.email}</span>
+          </li>
+          <li :if={@current_scope}><.link href={~p"/users/settings"}>Settings</.link></li>
+          <li :if={@current_scope}>
+            <.link
+              href={~p"/users/log-out"}
+              method="delete"
+              class="btn btn-sm btn-error btn-outline mt-1"
+            >
+              Log out
+            </.link>
+          </li>
+
+          <li :if={!@current_scope}><.link href={~p"/users/register"}>Register</.link></li>
+          <li :if={!@current_scope}>
+            <.link href={~p"/users/log-in"} class="btn btn-sm btn-primary mt-1">Log in</.link>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div :if={@current_scope} class="flex flex-1 overflow-hidden">
+      <aside class="w-64 bg-base-200 border-r border-base-300 overflow-y-auto">
+        <ul class="menu p-4 w-full text-base-content">
+          <li class="menu-title">Administration</li>
+          <li>
+            <.link navigate={~p"/admin/users"}>
+              <.icon name="hero-users" class="size-4" /> Users
+            </.link>
+          </li>
+          <li>
+            <.link navigate={~p"/admin/roles"}>
+              <.icon name="hero-shield-check" class="size-4" /> Roles
+            </.link>
+          </li>
+          <div class="divider my-2"></div>
+          <li class="menu-title">Hardware Domain</li>
+          <li>
+            <a href="#" class="opacity-50 cursor-not-allowed">
+              <.icon name="hero-computer-desktop" class="size-4" /> Displays (Soon)
+            </a>
+          </li>
+        </ul>
+      </aside>
+      <main class="flex-1 overflow-y-auto p-6 sm:p-8 lg:p-10">
+        {@inner_content}
+      </main>
+    </div>
+
+    <main :if={!@current_scope} class="flex-1 flex flex-col p-4 sm:p-6 lg:p-8">
+      {@inner_content}
+    </main>
   </body>
 </html>
