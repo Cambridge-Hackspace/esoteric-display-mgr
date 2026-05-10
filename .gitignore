@@ -1,0 +1,96 @@
+# --- Elixir / Phoenix Core ---
+# The directory Mix will write compiled artifacts to. [cite: 1]
+/_build/
+# If you run "mix test --cover", coverage assets end up here. [cite: 2]
+/cover/
+# The directory Mix downloads your dependencies sources to.
+/deps/
+# Where 3rd-party dependencies like ExDoc output generated docs. [cite: 3]
+/doc/
+# Ignore .fetch files in case you like to edit your project deps locally. [cite: 4]
+/.fetch
+# If the VM crashes, it generates a dump, let's ignore it too. [cite: 5]
+erl_crash.dump
+# Also ignore archive artifacts (built via "mix archive.build").
+*.ez
+# Temporary files, for example, from tests. [cite: 6]
+/tmp/
+# Ignore package tarball (built via "mix hex.build").
+esoteric_display_mgr-*.tar
+# Ignore assets that are produced by build tools. [cite: 7]
+/priv/static/assets/
+# Ignore digested assets cache.
+/priv/static/cache_manifest.json
+
+# --- Database / SQLite ---
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# --- Node.js / Assets ---
+npm-debug.log
+/assets/node_modules/
+.npm
+.eslintcache
+
+# --- Emacs ---
+# Foundational Emacs ignore patterns
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+# Org-mode
+.org-id-locations
+# Flycheck
+flycheck_*.el
+
+# --- Common Editors (VS Code / JetBrains) ---
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/
+.idea/
+*.iml
+*.iws
+
+# --- Operating Systems ---
+# Windows (since you are on WSL)
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Linux / FreeBSD
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# --- Environment Secrets ---
+# Keep your API keys and secrets out of Git!
+.env
+.env.local
+.env.*.local
