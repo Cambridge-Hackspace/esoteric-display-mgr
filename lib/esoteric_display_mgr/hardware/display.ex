@@ -33,7 +33,7 @@ defmodule EsotericDisplayMgr.Hardware.Display do
     |> validate_number(:port, greater_than: 0, less_than: 65536)
     |> validate_number(:width, greater_than: 0)
     |> validate_number(:height, greater_than: 0)
-    |> validate_number(:bits_per_channel, [1, 4, 8, 16, 24, 32])
+    |> validate_inclusion(:bits_per_channel, [1, 4, 8, 16, 24, 32])
     |> put_change(:user_id, user_scope.user.id)
   end
 end

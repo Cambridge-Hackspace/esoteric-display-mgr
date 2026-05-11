@@ -31,7 +31,9 @@ defmodule EsotericDisplayMgrWeb.Router do
   scope "/api", EsotericDisplayMgrWeb do
     pipe_through :api_auth
 
-    # TODO protected API routes go here
+    get "/displays", API.StreamController, :index
+    post "/streams", API.StreamController, :create
+    delete "/streams/:port", API.StreamController, :delete
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

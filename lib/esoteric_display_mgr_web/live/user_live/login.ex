@@ -107,8 +107,8 @@ defmodule EsotericDisplayMgrWeb.UserLive.Login do
   end
 
   @impl true
-  def handle_event("submit_password", _params, socket) do
-    {:noreply, assign(socket, :trigger_submit, true)}
+  def handle_event("submit_password", %{"user" => user_params}, socket) do
+    {:noreply, assign(socket, form: to_form(user_params, as: "user"), trigger_submit: true)}
   end
 
   def handle_event("submit_magic", %{"user" => %{"email" => email}}, socket) do
