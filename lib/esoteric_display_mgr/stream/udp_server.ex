@@ -16,6 +16,9 @@ defmodule EsotericDisplayMgr.Stream.UDPServer do
   def init(args) do
     user_id = Keyword.fetch!(args, :user_id)
     displays = Keyword.fetch!(args, :displays)
+    owner_email = Keyword.get(args, :owner_email, "unknown@example.com")
+
+    display_labels = Enum.map(displays, & &1.label)
 
     targets =
       Enum.map(displays, fn display ->
@@ -26,7 +29,13 @@ defmodule EsotericDisplayMgr.Stream.UDPServer do
     case :gen_udp.open(0, [:binary, active: true]) do
       {:ok, socket} ->
         {:ok, port} = :inet.port(socket)
-        Registry.register(EsotericDisplayMgr.StreamRegistry, port, %{user_id: user_id})
+
+        Registry.register(EsotericDisplayMgr.StreamRegistry, port, %{
+          user_id: user_id,
+          owner_email: owner_email,
+          display_labels: display_labels
+        })
+
         Logger.info("Opened UDP multiplexer on port #{port} for user #{user_id}")
         {:ok, %{socket: socket, port: port, targets: targets, user_id: user_id}}
 

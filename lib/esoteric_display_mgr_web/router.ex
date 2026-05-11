@@ -96,6 +96,14 @@ defmodule EsotericDisplayMgrWeb.Router do
       live "/admin/displays/:id/show/edit", DisplayLive.Form, :edit
     end
 
+    live_session :manage_streams,
+      on_mount: [
+        {EsotericDisplayMgrWeb.UserAuth, :require_authenticated},
+        {EsotericDisplayMgrWeb.UserAuth, {:require_permission, "stream:connect"}}
+      ] do
+      live "/admin/streams", StreamLive.Index, :index
+    end
+
     post "/users/update-password", UserSessionController, :update_password
   end
 

@@ -375,6 +375,10 @@ defmodule EsotericDisplayMgr.Accounts do
     Repo.delete(role)
   end
 
+  def has_permission?(scope, permissions) when is_list(permissions) do
+    Enum.any?(permissions, &has_permission?(scope, &1))
+  end
+
   @doc """
   Checks if the user in the given scope has the required permission.
   """

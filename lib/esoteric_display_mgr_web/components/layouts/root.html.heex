@@ -37,7 +37,7 @@
       <div class="flex-none">
         <ul class="menu menu-horizontal px-1 gap-2 items-center">
           <li class="hidden md:block">
-            <a href="https:/cambridgehackspace.com" target="_blank">Website</a>
+            <a href="https://www.cambridgehackspace.com" target="_blank">Website</a>
           </li>
           <li class="hidden md:block">
             <a href="https://github.com/Cambridge-Hackspace" target="_blank">GitHub</a>
@@ -71,22 +71,70 @@
     <div :if={@current_scope} class="flex flex-1 overflow-hidden">
       <aside class="w-64 bg-base-200 border-r border-base-300 overflow-y-auto">
         <ul class="menu p-4 w-full text-base-content">
-          <li class="menu-title">Administration</li>
-          <li>
+          <li
+            :if={
+              EsotericDisplayMgr.Accounts.has_permission?(@current_scope, [
+                "users:manage",
+                "roles:manage"
+              ])
+            }
+            class="menu-title"
+          >
+            Administration
+          </li>
+          <li :if={EsotericDisplayMgr.Accounts.has_permission?(@current_scope, "users:manage")}>
             <.link navigate={~p"/admin/users"}>
               <.icon name="hero-users" class="size-4" /> Users
             </.link>
           </li>
-          <li>
+          <li :if={EsotericDisplayMgr.Accounts.has_permission?(@current_scope, "roles:manage")}>
             <.link navigate={~p"/admin/roles"}>
               <.icon name="hero-shield-check" class="size-4" /> Roles
             </.link>
           </li>
-          <div class="divider my-2"></div>
-          <li class="menu-title">Hardware Domain</li>
-          <li>
+
+          <div
+            :if={
+              EsotericDisplayMgr.Accounts.has_permission?(@current_scope, [
+                "users:manage",
+                "roles:manage"
+              ])
+            }
+            class="divider my-2"
+          >
+          </div>
+
+          <li
+            :if={
+              EsotericDisplayMgr.Accounts.has_permission?(@current_scope, [
+                "displays:manage",
+                "displays:list",
+                "stream:connect",
+                "stream:manage"
+              ])
+            }
+            class="menu-title"
+          >
+            Hardware
+          </li>
+          <li :if={
+            EsotericDisplayMgr.Accounts.has_permission?(@current_scope, [
+              "displays:manage",
+              "displays:list"
+            ])
+          }>
             <.link navigate={~p"/admin/displays"}>
               <.icon name="hero-computer-desktop" class="size-4" /> Displays
+            </.link>
+          </li>
+          <li :if={
+            EsotericDisplayMgr.Accounts.has_permission?(@current_scope, [
+              "stream:connect",
+              "stream:manage"
+            ])
+          }>
+            <.link navigate={~p"/admin/streams"}>
+              <.icon name="hero-server-stack" class="size-4" /> Streams
             </.link>
           </li>
         </ul>
