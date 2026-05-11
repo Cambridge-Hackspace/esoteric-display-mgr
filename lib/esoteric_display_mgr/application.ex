@@ -15,9 +15,8 @@ defmodule EsotericDisplayMgr.Application do
       {DNSCluster,
        query: Application.get_env(:esoteric_display_mgr, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: EsotericDisplayMgr.PubSub},
-      # Start a worker by calling: EsotericDisplayMgr.Worker.start_link(arg)
-      # {EsotericDisplayMgr.Worker, arg},
-      # Start to serve requests, typically the last entry
+      {Registry, keys: :unique, name: EsotericDisplayMgr.StreamRegistry},
+      {DynamicSupervisor, name: EsotericDisplayMgr.StreamSupervisor, strategy: :one_for_one},
       EsotericDisplayMgrWeb.Endpoint
     ]
 

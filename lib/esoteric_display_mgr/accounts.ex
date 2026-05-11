@@ -375,6 +375,24 @@ defmodule EsotericDisplayMgr.Accounts do
     Repo.delete(role)
   end
 
+  def has_permission?(scope, permissions) when is_list(permissions) do
+    Enum.any?(permissions, &has_permission?(scope, &1))
+  end
+
+  @doc """
+  Checks if the user in the given scope has the required permission.
+  """
+  def has_permission?(%EsotericDisplayMgr.Accounts.Scope{user: %User{} = user}, permission) do
+    user = if Ecto.assoc_loaded?(user.roles), do: user, else: Repo.preload(user, :roles)
+
+    user.roles
+    |> Enum.flat_map(& &1.permissions)
+    |> MapSet.new()
+    |> MapSet.member?(permission)
+  end
+
+  def has_permission?(_scope, _permission), do: false
+
   @doc """
   Security check: Ensures a manager can only assign a role if they already
   possess all the permissions that the target role grants.

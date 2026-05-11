@@ -31,7 +31,9 @@ defmodule EsotericDisplayMgrWeb.Router do
   scope "/api", EsotericDisplayMgrWeb do
     pipe_through :api_auth
 
-    # TODO protected API routes go here
+    get "/displays", API.StreamController, :index
+    post "/streams", API.StreamController, :create
+    delete "/streams/:port", API.StreamController, :delete
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
@@ -80,6 +82,26 @@ defmodule EsotericDisplayMgrWeb.Router do
       live "/admin/roles", RoleLive.Index, :index
       live "/admin/roles/new", RoleLive.Form, :new
       live "/admin/roles/:id/edit", RoleLive.Form, :edit
+    end
+
+    live_session :manage_displays,
+      on_mount: [
+        {EsotericDisplayMgrWeb.UserAuth, :require_authenticated},
+        {EsotericDisplayMgrWeb.UserAuth, {:require_permission, "displays:manage"}}
+      ] do
+      live "/admin/displays", DisplayLive.Index, :index
+      live "/admin/displays/new", DisplayLive.Form, :new
+      live "/admin/displays/:id/edit", DisplayLive.Form, :edit
+      live "/admin/displays/:id", DisplayLive.Show, :show
+      live "/admin/displays/:id/show/edit", DisplayLive.Form, :edit
+    end
+
+    live_session :manage_streams,
+      on_mount: [
+        {EsotericDisplayMgrWeb.UserAuth, :require_authenticated},
+        {EsotericDisplayMgrWeb.UserAuth, {:require_permission, "stream:connect"}}
+      ] do
+      live "/admin/streams", StreamLive.Index, :index
     end
 
     post "/users/update-password", UserSessionController, :update_password
