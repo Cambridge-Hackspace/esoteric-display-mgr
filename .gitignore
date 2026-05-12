@@ -94,3 +94,7 @@ $RECYCLE.BIN/
 .env
 .env.local
 .env.*.local
+
+# -- This Project --
+priv/static/uploads/*
+!priv/static/uploads/.keep

@@ -34,6 +34,10 @@ defmodule EsotericDisplayMgrWeb.Router do
     get "/displays", API.StreamController, :index
     post "/streams", API.StreamController, :create
     delete "/streams/:port", API.StreamController, :delete
+
+    get "/media", API.MediaController, :index
+    post "/media", API.MediaController, :create
+    delete "/media/:id", API.MediaController, :delete
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
@@ -102,6 +106,14 @@ defmodule EsotericDisplayMgrWeb.Router do
         {EsotericDisplayMgrWeb.UserAuth, {:require_permission, "stream:connect"}}
       ] do
       live "/admin/streams", StreamLive.Index, :index
+    end
+
+    live_session :manage_media,
+      on_mount: [
+        {EsotericDisplayMgrWeb.UserAuth, :require_authenticated},
+        {EsotericDisplayMgrWeb.UserAuth, {:require_permission, "media:manage"}}
+      ] do
+      live "/admin/media", MediaLive.Index, :index
     end
 
     post "/users/update-password", UserSessionController, :update_password
