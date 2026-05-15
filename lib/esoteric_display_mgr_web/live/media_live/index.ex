@@ -200,7 +200,7 @@ defmodule EsotericDisplayMgrWeb.MediaLive.Index do
          put_flash(
            socket,
            :error,
-           "Cannot delete protected media without media:protect permission."
+           "Cannot delete protected media. Please unprotect it first."
          )}
 
       {:error, _} ->
@@ -437,7 +437,7 @@ defmodule EsotericDisplayMgrWeb.MediaLive.Index do
               Simulate
             </.button>
             <.button
-              :if={!item.protected or @can_protect?}
+              :if={!item.protected}
               class="btn btn-error btn-sm"
               phx-click="delete"
               phx-value-id={item.id}

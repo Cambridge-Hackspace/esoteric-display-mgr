@@ -39,7 +39,7 @@ defmodule EsotericDisplayMgr.Media do
 
   def delete_item(scope, %Item{} = item) do
     if Accounts.has_permission?(scope, "media:manage") do
-      if item.protected and not Accounts.has_permission?(scope, "media:protect") do
+      if item.protected do
         {:error, :protected}
       else
         Repo.delete(item)
