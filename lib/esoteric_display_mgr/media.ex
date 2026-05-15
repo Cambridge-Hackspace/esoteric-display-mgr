@@ -23,6 +23,7 @@ defmodule EsotericDisplayMgr.Media do
     if Accounts.has_permission?(scope, "media:manage") do
       can_protect? = Accounts.has_permission?(scope, "media:protect")
       user_priority_cap = Accounts.get_priority_cap(scope)
+
       display_ids =
         attrs
         |> Map.get("display_ids", [])
@@ -51,6 +52,7 @@ defmodule EsotericDisplayMgr.Media do
     if Accounts.has_permission?(scope, "media:manage") do
       can_protect? = Accounts.has_permission?(scope, "media:protect")
       user_priority_cap = Accounts.get_priority_cap(scope)
+
       display_ids =
         attrs
         |> Map.get("display_ids", Enum.map(item.displays, & &1.id))
@@ -65,11 +67,30 @@ defmodule EsotericDisplayMgr.Media do
             end))
         )
 
-      item
-      |> Item.changeset(attrs, user_priority_cap, can_protect?)
-      |> Ecto.Changeset.put_assoc(:displays, displays)
-      |> Repo.update()
-      |> broadcast_eval()
+      changeset =
+        item
+        |> Item.changeset(attrs, user_priority_cap, can_protect?)
+        |> Ecto.Changeset.put_assoc(:displays, displays)
+
+      refresh? = Enum.any?(changeset.changes, fn {k, _} -> k != :protected end)
+
+      res = Repo.update(changeset)
+
+      if refresh? do
+        case res do
+          {:ok, updated_item} ->
+            Phoenix.PubSub.broadcast(
+              EsotericDisplayMgr.PubSub,
+              "media:updates",
+              {:media_updated, updated_item.id}
+            )
+
+          _ ->
+            :ok
+        end
+      end
+
+      broadcast_eval(res)
     else
       {:error, :unauthorized}
     end

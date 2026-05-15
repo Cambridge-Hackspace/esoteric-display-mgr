@@ -41,6 +41,26 @@ defmodule EsotericDisplayMgr.Hardware.DisplayServer do
   end
 
   @impl true
+  def handle_info({:media_updated, media_id}, state) do
+    state = %{state | rendered_cache: Map.delete(state.rendered_cache, media_id)}
+
+    in_queue_or_playing? =
+      match?({:media, %{id: ^media_id}}, state.playing_item) or
+        Enum.any?(state.queue, fn
+          {:media, %{id: ^media_id}} -> true
+          _ -> false
+        end)
+
+    if in_queue_or_playing? do
+      stop_playing(state)
+      send(self(), :reevaluate)
+      {:noreply, %{state | current_priority: nil, playing_item: nil, queue: []}}
+    else
+      {:noreply, state}
+    end
+  end
+
+  @impl true
   def handle_info(:reevaluate, state) do
     display = EsotericDisplayMgr.Repo.get!(EsotericDisplayMgr.Hardware.Display, state.display_id)
     {:ok, parsed_ip} = display.ip_address |> to_charlist() |> :inet.parse_address()
