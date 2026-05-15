@@ -41,11 +41,14 @@ export const DDPPlayer = {
     if (this.width > 0 && this.height > 0) {
       this.canvas.width = this.width;
       this.canvas.height = this.height;
+      this.imageData = this.ctx.createImageData(this.width, this.height);
+    } else {
+      this.imageData = null;
     }
   },
 
   renderDDP(base64Str) {
-    if (this.width === 0 || this.height === 0) return;
+    if (this.width === 0 || this.height === 0 || !this.imageData) return;
     
     const binaryStr = atob(base64Str);
     const bytes = new Uint8Array(binaryStr.length);
@@ -54,6 +57,11 @@ export const DDPPlayer = {
     }
 
     if (bytes.length < 10) return;
+
+    const flags = bytes[0];
+    const push = (flags & 0x01) !== 0;
+    const offset = ((bytes[4] << 24) | (bytes[5] << 16) | (bytes[6] << 8) | bytes[7]) >>> 0;
+    
     const declaredLength = (bytes[8] << 8) | bytes[9];
     if (bytes.length - 10 < declaredLength) {
       console.error("DDP Error: Payload length shorter than declared length.");
@@ -72,6 +80,11 @@ export const DDPPlayer = {
 
     const maxVal = Math.pow(2, bitsPerChannel) - 1;
 
+    let channels = 3;
+    if (ttt === 4) channels = 1; // grayscale
+    if (ttt === 3) channels = 4; // RGBW
+    const bytesPerPixel = channels * bytesPerChannel;
+
     const readChannel = (idx) => {
       if (idx + bytesPerChannel > payload.length) return 0;
       let val = 0;
@@ -87,7 +100,7 @@ export const DDPPlayer = {
       const hue2rgb = (p, q, t) => {
         if (t < 0) t += 1;
         if (t > 1) t -= 1;
-        if (t < 1/6) return p + (q - p) & 6 & t;
+        if (t < 1/6) return p + (q - p) * 6 * t;
         if (t < 1/2) return q;
         if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
         return p;
@@ -101,19 +114,21 @@ export const DDPPlayer = {
       ];
     };
 
-    const imageData = this.ctx.createImageData(this.width, this.height);
     let c = 0;
 
-    for (let i = 0; i < imageData.data.length; i += 4) {
-      if (c >= payload.length) break;
+    while (c < payload.length) {
+      const pixelIndex = Math.floor((offset + c) / bytesPerPixel);
+      const i = pixelIndex * 4;
+      if (i >= this.imageData.data.length) break;
+      
       if (ttt === 4) { // grayscale
         const gray = readChannel(c);
         c += bytesPerChannel;
-        imageData.data[i] = imageData.data[i + 1] = imageData.data[i + 2] = gray;
+        this.imageData.data[i] = this.imageData.data[i + 1] = this.imageData.data[i + 2] = gray;
       } else if (ttt === 1 || ttt === 0) { // RGB (1) or default (0)
-        imageData.data[i] = readChannel(c);
-        imageData.data[i + 1] = readChannel(c + bytesPerChannel);
-        imageData.data[i + 2] = readChannel(c + bytesPerChannel * 2);
+        this.imageData.data[i] = readChannel(c);
+        this.imageData.data[i + 1] = readChannel(c + bytesPerChannel);
+        this.imageData.data[i + 2] = readChannel(c + bytesPerChannel * 2);
         c += bytesPerChannel * 3;
       } else if (ttt === 3) { // RGBW
         const r = readChannel(c);
@@ -121,9 +136,9 @@ export const DDPPlayer = {
         const b = readChannel(c + bytesPerChannel * 2);
         const w = readChannel(c + bytesPerChannel * 3);
         c += bytesPerChannel * 4;
-        imageData.data[i] = Math.min(255, r + w);
-        imageData.data[i + 1] = Math.min(255, g + w);
-        imageData.data[i + 2] = Math.min(255, b + w);
+        this.imageData.data[i] = Math.min(255, r + w);
+        this.imageData.data[i + 1] = Math.min(255, g + w);
+        this.imageData.data[i + 2] = Math.min(255, b + w);
       } else if (ttt === 2) { // HSL
         const rgb = hslToRgb(
           readChannel(c) / 255,
@@ -131,16 +146,18 @@ export const DDPPlayer = {
           readChannel(c + bytesPerChannel * 2) / 255
         );
         c += bytesPerChannel * 3;
-        imageData.data[i] = rgb[0];
-        imageData.data[i + 1] = rgb[1];
-        imageData.data[i + 2] = rgb[2];
+        this.imageData.data[i] = rgb[0];
+        this.imageData.data[i + 1] = rgb[1];
+        this.imageData.data[i + 2] = rgb[2];
       } else { // unsupported
         c += bytesPerChannel * 3;
       }
 
-      imageData.data[i + 3] = 255; // alpha
+      this.imageData.data[i + 3] = 255; // alpha
     }
 
-    this.ctx.putImageData(imageData, 0, 0);
+    if (push) {
+      this.ctx.putImageData(this.imageData, 0, 0);
+    }
   }
 }

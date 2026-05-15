@@ -146,15 +146,18 @@ defmodule EsotericDisplayMgr.Hardware.DisplayServer do
 
   def handle_info(:play_frame, state) do
     if state.playing_item != nil and Enum.any?(state.playing_frames) do
-      frame = Enum.at(state.playing_frames, state.frame_index)
-      {:ok, bin} = Base.decode64(frame)
-      :gen_udp.send(state.socket, state.target_ip, state.target_port, bin)
+      frames = Enum.at(state.playing_frames, state.frame_index)
 
-      Phoenix.PubSub.broadcast(
-        EsotericDisplayMgr.PubSub,
-        "display_preview:#{state.display_id}",
-        {:preview_packet, bin}
-      )
+      for frame <- List.wrap(frames) do
+        {:ok, bin} = Base.decode64(frame)
+        :gen_udp.send(state.socket, state.target_ip, state.target_port, bin)
+
+        Phoenix.PubSub.broadcast(
+          EsotericDisplayMgr.PubSub,
+          "display_preview:#{state.display_id}",
+          {:preview_packet, bin}
+        )
+      end
 
       next_idx = state.frame_index + 1
 
