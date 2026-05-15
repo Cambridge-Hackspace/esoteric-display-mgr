@@ -110,6 +110,13 @@ defmodule EsotericDisplayMgr.Hardware do
            |> Display.changeset(attrs, scope)
            |> Repo.update() do
       broadcast_display(scope, {:updated, display})
+
+      Phoenix.PubSub.broadcast(
+        EsotericDisplayMgr.PubSub,
+        "display_queue:#{display.id}",
+        :display_updated
+      )
+
       Phoenix.PubSub.broadcast(EsotericDisplayMgr.PubSub, "media:updates", :reevaluate)
       {:ok, display}
     end

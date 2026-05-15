@@ -61,6 +61,7 @@ export const DDPPlayer = {
     }
 
     const typeByte = bytes[2];
+    const ttt = (typeByte >>> 3) & 0x07;
     const payload = bytes.slice(10, 10 + declaredLength);
 
     const bitsPerChannel = parseInt(this.canvas.dataset.bits || "8", 10);
@@ -105,16 +106,16 @@ export const DDPPlayer = {
 
     for (let i = 0; i < imageData.data.length; i += 4) {
       if (c >= payload.length) break;
-      if (typeByte === 4) { // grayscale
+      if (ttt === 4) { // grayscale
         const gray = readChannel(c);
         c += bytesPerChannel;
         imageData.data[i] = imageData.data[i + 1] = imageData.data[i + 2] = gray;
-      } else if (typeByte === 1) { // RGB24
+      } else if (ttt === 1 || ttt === 0) { // RGB (1) or default (0)
         imageData.data[i] = readChannel(c);
         imageData.data[i + 1] = readChannel(c + bytesPerChannel);
         imageData.data[i + 2] = readChannel(c + bytesPerChannel * 2);
         c += bytesPerChannel * 3;
-      } else if (typeByte === 3) { // RGBW32
+      } else if (ttt === 3) { // RGBW
         const r = readChannel(c);
         const g = readChannel(c + bytesPerChannel);
         const b = readChannel(c + bytesPerChannel * 2);
@@ -123,7 +124,7 @@ export const DDPPlayer = {
         imageData.data[i] = Math.min(255, r + w);
         imageData.data[i + 1] = Math.min(255, g + w);
         imageData.data[i + 2] = Math.min(255, b + w);
-      } else if (typeByte === 2) { // HSL
+      } else if (ttt === 2) { // HSL
         const rgb = hslToRgb(
           readChannel(c) / 255,
           readChannel(c + bytesPerChannel) / 255,

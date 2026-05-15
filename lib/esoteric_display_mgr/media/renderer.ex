@@ -348,13 +348,13 @@ defmodule EsotericDisplayMgr.Media.Renderer do
           img = bandjoin!(img, w_band)
           raw_binary = to_binary!(img)
 
-          {raw_binary, :rgbw32}
+          {raw_binary, :rgbw}
 
         _ ->
           {:ok, img} = Image.to_colorspace(img, :srgb)
           {:ok, img} = Image.cast(img, format)
           raw_binary = to_binary!(img)
-          {raw_binary, :rgb24}
+          {raw_binary, :rgb}
       end
 
     {raw_pixels, ddp_type, display.bits_per_channel}
@@ -370,7 +370,7 @@ defmodule EsotericDisplayMgr.Media.Renderer do
 
       raw_pixels
       |> adjust_bit_depth(bits)
-      |> DDP.encode(sequence: sequence, type: ddp_type, dest_id: 0)
+      |> DDP.encode(sequence: sequence, type: ddp_type, bits: bits, dest_id: 0)
       |> Base.encode64()
     end)
   end
