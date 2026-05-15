@@ -239,7 +239,7 @@ defmodule EsotericDisplayMgrWeb.MediaLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-8">
+    <div class="space-y-8 pb-32">
       <div>
         <h1 class="text-2xl font-bold text-base-content">Media Library</h1>
         <p class="text-base-content/70">Manage images and text elements for your displays.</p>

@@ -43,14 +43,14 @@ defmodule EsotericDisplayMgr.Hardware.DisplayServer do
   @impl true
   def handle_info(:reevaluate, state) do
     display = EsotericDisplayMgr.Repo.get!(EsotericDisplayMgr.Hardware.Display, state.display_id)
-    {:ok, target_ip} = display.ip_address |> to_charlist() |> :inet.parse_address()
+    {:ok, parsed_ip} = display.ip_address |> to_charlist() |> :inet.parse_address()
 
-    state = %{state | display: display, target_ip: target_ip, target_port: display.port}
+    new_state = %{state | display: display, target_ip: parsed_ip, target_port: display.port}
 
     media_items =
       Media.list_items()
       |> Enum.filter(fn i ->
-        Enum.any?(i.displays, &(&1.id == state.display_id)) and
+        Enum.any?(i.displays, &(&1.id == new_state.display_id)) and
           i.priority <= display.required_priority
       end)
       |> Enum.map(&{:media, &1})
@@ -68,8 +68,8 @@ defmodule EsotericDisplayMgr.Hardware.DisplayServer do
     all_eligible = media_items ++ streams
 
     if Enum.empty?(all_eligible) do
-      stop_playing(state)
-      {:noreply, %{state | queue: [], current_priority: nil, playing_item: nil}}
+      stop_playing(new_state)
+      {:noreply, %{new_state | queue: [], current_priority: nil, playing_item: nil}}
     else
       best_priority =
         all_eligible
@@ -87,18 +87,17 @@ defmodule EsotericDisplayMgr.Hardware.DisplayServer do
         |> Enum.shuffle()
 
       cond do
-        state.current_priority == nil or best_priority < state.current_priority ->
-          stop_playing(state)
-          state = %{state | current_priority: best_priority, queue: best_items}
-          {:noreply, play_next(state)}
-
-        best_priority == state.current_priority ->
-          new_queue = update_queue(state.queue, best_items, state.playing_item)
-          state = %{state | queue: new_queue}
-          {:noreply, if(state.playing_item == nil, do: play_next(state), else: state)}
+        new_state.current_priority != best_priority ->
+          stop_playing(new_state)
+          new_state2 = %{new_state | current_priority: best_priority, queue: best_items}
+          {:noreply, play_next(new_state2)}
 
         true ->
-          {:noreply, state}
+          new_queue = update_queue(new_state.queue, best_items, new_state.playing_item)
+          new_state2 = %{new_state | queue: new_queue}
+
+          {:noreply,
+           if(new_state2.playing_item == nil, do: play_next(new_state2), else: new_state2)}
       end
     end
   end

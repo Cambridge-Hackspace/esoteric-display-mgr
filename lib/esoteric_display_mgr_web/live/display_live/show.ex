@@ -8,7 +8,7 @@ defmodule EsotericDisplayMgrWeb.DisplayLive.Show do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <.header>
-        Display {@display.id}
+        {@display.label}
         <:subtitle>This is a display record from your database.</:subtitle>
         <:actions>
           <.button navigate={~p"/admin/displays"}>
@@ -34,13 +34,13 @@ defmodule EsotericDisplayMgrWeb.DisplayLive.Show do
       </div>
 
       <.list>
-        <:item title="Label">{@display.label}</:item>
-        <:item title="Ip address">{@display.ip_address}</:item>
+        <:item title="Display ID">{@display.id}</:item>
+        <:item title="IP Address">{@display.ip_address}</:item>
         <:item title="Port">{@display.port}</:item>
         <:item title="Width">{@display.width}</:item>
         <:item title="Height">{@display.height}</:item>
-        <:item title="Color type">{@display.color_type}</:item>
-        <:item title="Bits per channel">{@display.bits_per_channel}</:item>
+        <:item title="Color Type">{@display.color_type}</:item>
+        <:item title="Bits per Channel">{@display.bits_per_channel}</:item>
       </.list>
     </Layouts.app>
     """

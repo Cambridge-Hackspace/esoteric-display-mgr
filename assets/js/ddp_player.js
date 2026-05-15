@@ -8,12 +8,21 @@ export const DDPPlayer = {
     this.timer = null;
 
     this.handleEvent(`ddp-frame-${this.canvas.id}`, ({ frames }) => {
-      if (this.timer) clearInterval(this.timer);
-      let currentFrame = 0;
-      this.timer = setInterval(() => {
-        this.renderDDP(frames[currentFrame]);
-        currentFrame = (currentFrame + 1) % frames.length;
-      }, 100);
+      if (this.timer) {
+        clearInterval(this.timer);
+        this.timer = null;
+      }
+
+      if (!frames || frames.length === 0) return;
+      this.renderDDP(frames[0]);
+
+      if (frames.length > 1) {
+        let currentFrame = 1;
+        this.timer = setInterval(() => {
+          this.renderDDP(frames[currentFrame]);
+          currentFrame = (currentFrame + 1) % frames.length;
+        }, 100);
+      }
     });
   },
 
