@@ -502,4 +502,35 @@ defmodule EsotericDisplayMgrWeb.CoreComponents do
   def translate_errors(errors, field) when is_list(errors) do
     for {^field, {msg, opts}} <- errors, do: translate_error({msg, opts})
   end
+
+  @doc """
+  Renders a modal.
+  """
+  attr :id, :string, required: true
+  attr :show, :boolean, default: false
+  attr :on_cancel, JS, default: %JS{}
+  slot :inner_block, required: true
+
+  def modal(assigns) do
+    ~H"""
+    <div id={@id} class={["modal", @show && "modal-open"]} phx-mounted={@show && show_modal(@id)}>
+      <div class="modal-box">
+        {render_slot(@inner_block)}
+      </div>
+      <div class="modal-backdrop" phx-click={hide_modal(@on_cancel, @id)}>
+        <button class="cursor-default" aria-label={gettext("close")}>close</button>
+      </div>
+    </div>
+    """
+  end
+
+  @doc "Shows a modal"
+  def show_modal(js \\ %JS{}, id) when is_binary(id) do
+    JS.add_class(js, "modal-open", to: "##{id}")
+  end
+
+  @doc "Hides a modal"
+  def hide_modal(js \\ %JS{}, id) do
+    JS.remove_class(js, "modal-open", to: "##{id}")
+  end
 end

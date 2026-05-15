@@ -23,7 +23,13 @@ defmodule EsotericDisplayMgrWeb.MediaLive.Index do
       |> assign(:displays, Hardware.list_displays(scope))
       |> assign(
         :form,
-        to_form(%{"media_type" => "image", "marquee" => "none", "sizing" => "stretch"})
+        to_form(%{
+          "media_type" => "image",
+          "marquee" => "none",
+          "sizing" => "stretch",
+          "priority" => Accounts.get_priority_cap(scope),
+          "display_ids" => []
+        })
       )
       |> allow_upload(:media_file, accept: ~w(.png .jpg .jpeg .svg .gif), max_entries: 1)
 
@@ -82,7 +88,13 @@ defmodule EsotericDisplayMgrWeb.MediaLive.Index do
          |> assign(:items, Media.list_items())
          |> assign(
            :form,
-           to_form(%{"media_type" => "image", "marquee" => "none", "sizing" => "stretch"})
+           to_form(%{
+             "media_type" => "image",
+             "marquee" => "none",
+             "sizing" => "stretch",
+             "priority" => Accounts.get_priority_cap(scope),
+             "display_ids" => []
+           })
          )}
 
       {:error, %Ecto.Changeset{} = _changeset} ->
@@ -235,7 +247,13 @@ defmodule EsotericDisplayMgrWeb.MediaLive.Index do
 
       <div class="bg-base-100 shadow rounded-lg p-6 border border-base-200">
         <h2 class="text-lg font-semibold mb-4">Add New Media</h2>
-        <.form for={@form} phx-change="validate" phx-submit="save" class="space-y-4">
+        <.form
+          for={@form}
+          phx-change="validate"
+          phx-submit="save"
+          id="new-media-form"
+          class="space-y-4"
+        >
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <.input
               type="select"
@@ -291,6 +309,63 @@ defmodule EsotericDisplayMgrWeb.MediaLive.Index do
               label="Sizing"
               options={[Stretch: "stretch", Zoom: "zoom", Crop: "crop"]}
             />
+
+            <.input
+              type="number"
+              field={@form[:priority]}
+              label={"Priority (Cap: #{EsotericDisplayMgr.Accounts.get_priority_cap(@current_scope)})"}
+              min={EsotericDisplayMgr.Accounts.get_priority_cap(@current_scope)}
+              max="7"
+            />
+
+            <div class="fieldset">
+              <label class="label mb-1">Assign Displays</label>
+              <button
+                type="button"
+                class="btn btn-sm btn-outline w-fit"
+                phx-click={show_modal("new_display_modal")}
+              >
+                Select Devices
+              </button>
+
+              <.modal id="new_display_modal">
+                <h3 class="font-bold text-lg mb-4">Assign Displays</h3>
+                <div class="flex flex-col gap-2 max-h-64 overflow-y-auto">
+                  <input
+                    type="hidden"
+                    name={@form[:display_ids].name <> "[]"}
+                    value=""
+                    form="new-media-form"
+                  />
+                  <%= for display <- @displays do %>
+                    <% checked =
+                      to_string(display.id) in if is_list(@form[:display_ids].value),
+                        do: Enum.map(@form[:display_ids].value, &to_string/1),
+                        else: [] %>
+                    <label class="cursor-pointer label justify-start gap-3 p-2 hover:bg-base-200 rounded-lg">
+                      <input
+                        type="checkbox"
+                        name={@form[:display_ids].name <> "[]"}
+                        value={display.id}
+                        checked={checked}
+                        class="checkbox checkbox-primary"
+                        form="new-media-form"
+                      />
+                      <span class="label-text">{display.label}</span>
+                    </label>
+                  <% end %>
+                </div>
+                <div class="modal-action">
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    phx-click={hide_modal("new_display_modal")}
+                  >
+                    Done
+                  </button>
+                </div>
+              </.modal>
+            </div>
 
             <div :if={@can_protect?} class="flex items-end pb-2">
               <.input type="checkbox" field={@form[:protected]} label="Protect from deletion" />
@@ -372,9 +447,21 @@ defmodule EsotericDisplayMgrWeb.MediaLive.Index do
             </div>
           </:col>
           <:col :let={item} label="Modifiers">
-            <form phx-change="update_media">
-              <input type="hidden" name="item_id" value={item.id} />
-              <div class="flex flex-col gap-2">
+            <div class="flex flex-col gap-2">
+              <form
+                phx-change="update_media"
+                id={"edit-media-form-#{item.id}"}
+                class="flex flex-col gap-2"
+              >
+                <input type="hidden" name="item_id" value={item.id} />
+                <input
+                  type="number"
+                  name="priority"
+                  value={item.priority}
+                  class="input input-bordered input-xs"
+                  min={EsotericDisplayMgr.Accounts.get_priority_cap(@current_scope)}
+                  max="7"
+                />
                 <%= if item.media_type == :gif do %>
                   <input type="hidden" name="marquee" value="none" />
                   <select class="select select-bordered select-xs w-full max-w-xs" disabled>
@@ -394,8 +481,60 @@ defmodule EsotericDisplayMgrWeb.MediaLive.Index do
                   <option value="zoom" selected={item.sizing == :zoom}>Zoom</option>
                   <option value="crop" selected={item.sizing == :crop}>Crop</option>
                 </select>
-              </div>
-            </form>
+              </form>
+
+              <button
+                type="button"
+                class="btn btn-xs btn-outline mt-1 w-full"
+                onclick={"document.getElementById('edit_display_modal_#{item.id}').showModal()"}
+              >
+                Select Devices
+              </button>
+              <dialog id={"edit_display_modal_#{item.id}"} class="modal">
+                <div class="modal-box">
+                  <form
+                    phx-submit="update_media"
+                    onsubmit={"document.getElementById('edit_display_modal_#{item.id}').close()"}
+                  >
+                    <input type="hidden" name="item_id" value={item.id} />
+                    <h3 class="font-bold text-lg mb-4">Assign Display</h3>
+                    <div class="flex flex-col gap-2 max-h-64 overflow-y-auto">
+                      <input
+                        type="hidden"
+                        name="display_ids[]"
+                        value=""
+                      />
+                      <%= for display <- @displays do %>
+                        <% assigned? = Enum.any?(item.displays, &(&1.id == display.id)) %>
+                        <label class="cursor-pointer label justify-start gap-3 p-2 hover:bg-base-200 rounded-lg">
+                          <input
+                            type="checkbox"
+                            name="display_ids[]"
+                            value={display.id}
+                            checked={assigned?}
+                            class="checkbox checkbox-primary"
+                          />
+                          <span class="label-text">{display.label}</span>
+                        </label>
+                      <% end %>
+                    </div>
+                    <div class="modal-action">
+                      <button type="submit" class="btn btn-primary">Done</button>
+                      <button
+                        type="button"
+                        class="btn"
+                        onclick={"document.getElementById('edit_display_modal_#{item.id}').close()"}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                </div>
+                <form method="dialog" class="modal-backdrop">
+                  <button>close</button>
+                </form>
+              </dialog>
+            </div>
           </:col>
           <:col :let={item} label="Status">
             <form phx-change="update_media">

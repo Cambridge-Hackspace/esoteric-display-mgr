@@ -17,6 +17,18 @@ defmodule EsotericDisplayMgr.Application do
       {Phoenix.PubSub, name: EsotericDisplayMgr.PubSub},
       {Registry, keys: :unique, name: EsotericDisplayMgr.StreamRegistry},
       {DynamicSupervisor, name: EsotericDisplayMgr.StreamSupervisor, strategy: :one_for_one},
+      {Registry, keys: :unique, name: EsotericDisplayMgr.DisplayRegistry},
+      {DynamicSupervisor,
+       name: EsotericDisplayMgr.Hardware.DisplaySupervisor, strategy: :one_for_one},
+      {Task,
+       fn ->
+         for display <- EsotericDisplayMgr.Repo.all(EsotericDisplayMgr.Hardware.Display) do
+           DynamicSupervisor.start_child(
+             EsotericDisplayMgr.Hardware.DisplaySupervisor,
+             {EsotericDisplayMgr.Hardware.DisplayServer, display.id}
+           )
+         end
+       end},
       EsotericDisplayMgrWeb.Endpoint
     ]
 

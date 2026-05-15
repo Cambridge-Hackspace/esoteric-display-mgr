@@ -17,14 +17,11 @@ defmodule EsotericDisplayMgr.Stream.UDPServer do
     user_id = Keyword.fetch!(args, :user_id)
     displays = Keyword.fetch!(args, :displays)
     owner_email = Keyword.get(args, :owner_email, "unknown@example.com")
+    priority = Keyword.get(args, :priority, 7)
 
     display_labels = Enum.map(displays, & &1.label)
 
-    targets =
-      Enum.map(displays, fn display ->
-        {:ok, ip_tuple} = display.ip_address |> to_charlist() |> :inet.parse_address()
-        {ip_tuple, display.port}
-      end)
+    targets = Enum.map(displays, & &1.id)
 
     case :gen_udp.open(0, [:binary, active: true]) do
       {:ok, socket} ->
@@ -33,7 +30,8 @@ defmodule EsotericDisplayMgr.Stream.UDPServer do
         Registry.register(EsotericDisplayMgr.StreamRegistry, port, %{
           user_id: user_id,
           owner_email: owner_email,
-          display_labels: display_labels
+          display_labels: display_labels,
+          priority: priority
         })
 
         Logger.info("Opened UDP multiplexer on port #{port} for user #{user_id}")
@@ -51,8 +49,12 @@ defmodule EsotericDisplayMgr.Stream.UDPServer do
 
   @impl true
   def handle_info({:udp, _socket, _ip, _in_port, packet}, state) do
-    Enum.each(state.targets, fn {target_ip, target_port} ->
-      :gen_udp.send(state.socket, target_ip, target_port, packet)
+    Enum.each(state.targets, fn display_id ->
+      Phoenix.PubSub.broadcast(
+        EsotericDisplayMgr.PubSub,
+        "display_queue:#{display_id}",
+        {:udp_packet, state.port, packet}
+      )
     end)
 
     {:noreply, state}

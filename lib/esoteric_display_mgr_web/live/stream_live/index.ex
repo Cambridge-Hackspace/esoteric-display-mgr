@@ -23,7 +23,10 @@ defmodule EsotericDisplayMgrWeb.StreamLive.Index do
         |> assign(:can_manage?, can_manage?)
         |> assign(:displays, displays)
         |> assign(:active_streams, Manager.list_streams(scope))
-        |> assign(:form, to_form(%{"display_ids" => []}))
+        |> assign(
+          :form,
+          to_form(%{"display_ids" => [], "priority" => Accounts.get_priority_cap(scope)})
+        )
         |> assign(:page_title, "Manage Streams")
 
       {:ok, socket}
@@ -42,16 +45,17 @@ defmodule EsotericDisplayMgrWeb.StreamLive.Index do
   end
 
   @impl true
-  def handle_event("open_stream", %{"display_ids" => display_ids}, socket) do
+  def handle_event("open_stream", %{"display_ids" => display_ids, "priority" => priority}, socket) do
     scope = socket.assigns.current_scope
     display_ids = Enum.reject(display_ids, &(&1 == ""))
+    {priority_int, _} = Integer.parse(priority)
 
     if Enum.empty?(display_ids) do
       {:noreply, put_flash(socket, :error, "You must select at least one display.")}
     else
       displays = Enum.map(display_ids, &Hardware.get_display!(scope, &1))
 
-      case Manager.open_stream(scope.user, displays) do
+      case Manager.open_stream(scope.user, displays, priority_int) do
         {:ok, port} ->
           {:noreply,
            socket
@@ -96,6 +100,15 @@ defmodule EsotericDisplayMgrWeb.StreamLive.Index do
       <div class="bg-base-100 shadow rounded-lg p-6">
         <h2 class="text-lg font-semibold mb-4">Open New Stream</h2>
         <.form for={@form} phx-submit="open_stream">
+          <div class="mb-4">
+            <.input
+              type="number"
+              field={@form[:priority]}
+              label={"Priority (Cap: #{EsotericDisplayMgr.Accounts.get_priority_cap(@current_scope)})"}
+              min={EsotericDisplayMgr.Accounts.get_priority_cap(@current_scope)}
+              max="7"
+            />
+          </div>
           <div class="mb-4">
             <label class="block text-sm font-medium mb-2">Select Displays</label>
             <div class="space-y-2 max-h-48 overflow-y-auto border border-base-300 rounded p-3">

@@ -11,6 +11,12 @@ defmodule EsotericDisplayMgr.Hardware.Display do
     field :color_type, :string
     field :bits_per_channel, :integer
     field :user_id, :id
+    field :required_priority, :integer, default: 7
+
+    many_to_many :media_items, EsotericDisplayMgr.Media.Item,
+      join_through: "media_items_displays",
+      join_keys: [display_id: :id, media_item_id: :id],
+      on_replace: :delete
 
     timestamps(type: :utc_datetime)
   end
@@ -18,7 +24,16 @@ defmodule EsotericDisplayMgr.Hardware.Display do
   @doc false
   def changeset(display, attrs, user_scope) do
     display
-    |> cast(attrs, [:label, :ip_address, :port, :width, :height, :color_type, :bits_per_channel])
+    |> cast(attrs, [
+      :label,
+      :ip_address,
+      :port,
+      :width,
+      :height,
+      :color_type,
+      :bits_per_channel,
+      :required_priority
+    ])
     |> validate_required([
       :label,
       :ip_address,
@@ -26,8 +41,10 @@ defmodule EsotericDisplayMgr.Hardware.Display do
       :width,
       :height,
       :color_type,
-      :bits_per_channel
+      :bits_per_channel,
+      :required_priority
     ])
+    |> validate_inclusion(:required_priority, 0..7)
     |> unique_constraint(:label)
     |> validate_inclusion(:color_type, ["RGB", "RGBW", "HSL", "Grayscale"])
     |> validate_number(:port, greater_than: 0, less_than: 65536)

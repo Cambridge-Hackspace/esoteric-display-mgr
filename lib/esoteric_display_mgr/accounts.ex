@@ -420,4 +420,25 @@ defmodule EsotericDisplayMgr.Accounts do
   # Dummy PubSub subscriptions to satisfy the LiveView mount functions
   def subscribe_roles(_scope \\ nil), do: :ok
   def subscribe_users(_scope \\ nil), do: :ok
+
+  @doc """
+  Returns the lowest valid priority cap for a given user scope.
+  Returns 7 (lowest priority) if no cap is specified.
+  """
+  def get_priority_cap(%EsotericDisplayMgr.Accounts.Scope{user: %User{} = user}) do
+    user = if Ecto.assoc_loaded?(user.roles), do: user, else: Repo.preload(user, :roles)
+
+    caps =
+      user.roles
+      |> Enum.flat_map(& &1.permissions)
+      |> Enum.filter(&String.starts_with?(&1, "priority:cap:"))
+      |> Enum.map(fn perm ->
+        case Integer.parse(String.replace_prefix(perm, "priority:cap:", "")) do
+          {num, ""} when num in 0..7 -> num
+          _ -> 7
+        end
+      end)
+
+    if caps == [], do: 7, else: Enum.min(caps)
+  end
 end
