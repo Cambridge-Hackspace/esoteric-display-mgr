@@ -25,6 +25,18 @@ defmodule EsotericDisplayMgr.Media do
     end
   end
 
+  def update_item(scope, %Item{} = item, attrs) do
+    if Accounts.has_permission?(scope, "media:manage") do
+      can_protect? = Accounts.has_permission?(scope, "media:protect")
+
+      item
+      |> Item.changeset(attrs, can_protect?)
+      |> Repo.update()
+    else
+      {:error, :unauthorized}
+    end
+  end
+
   def delete_item(scope, %Item{} = item) do
     if Accounts.has_permission?(scope, "media:manage") do
       if item.protected and not Accounts.has_permission?(scope, "media:protect") do

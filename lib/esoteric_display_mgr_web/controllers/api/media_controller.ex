@@ -44,7 +44,7 @@ defmodule EsotericDisplayMgrWeb.API.MediaController do
       {:ok, item} ->
         json(conn, %{success: true, item: %{id: item.id, content: item.content}})
 
-      {:error, %Ecto.Changeset{} = changeset} ->
+      {:error, %Ecto.Changeset{} = _changeset} ->
         conn
         |> put_status(:unprocessable_entity)
         |> json(%{error: "Invalid parameters"})

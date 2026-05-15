@@ -23,6 +23,7 @@ import "phoenix_html"
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/esoteric_display_mgr"
+import {DDPPlayer} from "./ddp_player"
 import topbar from "../vendor/topbar"
 
 // Initialize Alpine.js
@@ -34,7 +35,7 @@ const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks},
+  hooks: {...colocatedHooks, DDPPlayer},
   dom: {
     onBeforeElUpdated(from, to) {
       if (from._x_dataStack) {
