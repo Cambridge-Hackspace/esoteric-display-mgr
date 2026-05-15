@@ -6,7 +6,7 @@ defmodule EsotericDisplayMgr.Media.Item do
     field :media_type, Ecto.Enum, values: [:image, :gif, :text]
     field :content, :string
     field :marquee, Ecto.Enum, values: [:none, :ltr, :rtl, :utd, :dtu], default: :none
-    field :sizing, Ecto.Enum, values: [:stretch, :zoom], default: :stretch
+    field :sizing, Ecto.Enum, values: [:stretch, :zoom, :crop], default: :stretch
     field :protected, :boolean, default: false
 
     timestamps(type: :utc_datetime)

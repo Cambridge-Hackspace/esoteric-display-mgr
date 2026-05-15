@@ -45,7 +45,7 @@ defmodule EsotericDisplayMgr.Media.Renderer do
   # --- 1. LOADING ---
 
   defp loading(%Item{media_type: :text, content: text}, display) do
-    target_height = max(1, round(display.height * 0.09))
+    target_height = max(1, round(display.height * 0.90))
 
     case Image.Text.text(text,
            text_fill_color: :white,
@@ -77,7 +77,14 @@ defmodule EsotericDisplayMgr.Media.Renderer do
     priv_path = Path.join(:code.priv_dir(:esoteric_display_mgr), "static" <> path)
 
     if File.exists?(priv_path) do
-      case Image.open(priv_path, access: :sequential) do
+      opts =
+        if type == :gif do
+          [access: :sequential, pages: :all, fail_on: :none]
+        else
+          [access: :sequential, fail_on: :none]
+        end
+
+      case Image.open(priv_path, opts) do
         {:ok, img} ->
           extract_frames(img)
 
@@ -94,16 +101,33 @@ defmodule EsotericDisplayMgr.Media.Renderer do
   defp extract_frames(img) do
     case Vix.Vips.Image.header_value(img, "n-pages") do
       {:ok, pages} when is_integer(pages) and pages > 1 ->
-        page_height = div(Image.height(img), pages)
+        total_height = Image.height(img)
+
+        page_height =
+          case Vix.Vips.Image.header_value(img, "page-height") do
+            {:ok, ph} when is_integer(ph) and ph > 0 -> ph
+            _ -> max(1, div(total_height, pages))
+          end
+
         width = Image.width(img)
+        loaded_pages = div(total_height, page_height)
 
-        Enum.map(0..(pages - 1), fn i ->
-          {:ok, cropped} = Image.crop(img, 0, i * page_height, width, page_height)
+        frames =
+          0..(max(1, loaded_pages) - 1)
+          |> Enum.flat_map(fn i ->
+            y_offset = i * page_height
 
-          cropped
-          |> ensure_rgba()
-          |> force_memory()
-        end)
+            if y_offset + page_height <= total_height do
+              case Vix.Vips.Operation.extract_area(img, 0, y_offset, width, page_height) do
+                {:ok, cropped} -> [cropped |> ensure_rgba() |> force_memory()]
+                _ -> []
+              end
+            else
+              []
+            end
+          end)
+
+        if frames == [], do: [ensure_rgba(img) |> force_memory()], else: frames
 
       _ ->
         [ensure_rgba(img) |> force_memory()]
@@ -120,7 +144,8 @@ defmodule EsotericDisplayMgr.Media.Renderer do
   # --- 2. RESIZING ---
 
   defp resizing(frames, item, display) do
-    Enum.map(frames, &apply_sizing(&1, display, item.sizing, item.marquee))
+    effective_marquee = if item.media_type == :gif, do: :none, else: item.marquee
+    Enum.map(frames, &apply_sizing(&1, display, item.sizing, effective_marquee))
   end
 
   defp apply_sizing(img, display, :stretch, _marquee) do
@@ -171,7 +196,7 @@ defmodule EsotericDisplayMgr.Media.Renderer do
     crop_x = div(rw - crop_w, 2)
     crop_y = div(rh - crop_h, 2)
 
-    {:ok, cropped} = Image.crop(resized, crop_x, crop_y, crop_w, crop_h)
+    {:ok, cropped} = Vix.Vips.Operation.extract_area(resized, crop_x, crop_y, crop_w, crop_h)
     force_memory(cropped)
   end
 
@@ -219,7 +244,9 @@ defmodule EsotericDisplayMgr.Media.Renderer do
         total_steps = w + sigma_count
 
         Enum.map(total_steps..0//-1, fn x ->
-          {:ok, cropped} = Image.crop(padded, x, 0, display.width, display.height)
+          {:ok, cropped} =
+            Vix.Vips.Operation.extract_area(padded, x, 0, display.width, display.height)
+
           force_memory(cropped)
         end)
 
@@ -227,7 +254,9 @@ defmodule EsotericDisplayMgr.Media.Renderer do
         total_steps = w + sigma_count
 
         Enum.map(0..total_steps, fn x ->
-          {:ok, cropped} = Image.crop(padded, x, 0, display.width, display.height)
+          {:ok, cropped} =
+            Vix.Vips.Operation.extract_area(padded, x, 0, display.width, display.height)
+
           force_memory(cropped)
         end)
 
@@ -235,7 +264,9 @@ defmodule EsotericDisplayMgr.Media.Renderer do
         total_steps = h + sigma_count
 
         Enum.map(total_steps..0//-1, fn y ->
-          {:ok, cropped} = Image.crop(padded, 0, y, display.width, display.height)
+          {:ok, cropped} =
+            Vix.Vips.Operation.extract_area(padded, 0, y, display.width, display.height)
+
           force_memory(cropped)
         end)
 
@@ -243,7 +274,9 @@ defmodule EsotericDisplayMgr.Media.Renderer do
         total_steps = h + sigma_count
 
         Enum.map(0..total_steps, fn y ->
-          {:ok, cropped} = Image.crop(padded, 0, y, display.width, display.height)
+          {:ok, cropped} =
+            Vix.Vips.Operation.extract_area(padded, 0, y, display.width, display.height)
+
           force_memory(cropped)
         end)
     end

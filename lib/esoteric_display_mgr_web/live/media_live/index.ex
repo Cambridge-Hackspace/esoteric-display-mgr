@@ -63,9 +63,13 @@ defmodule EsotericDisplayMgrWeb.MediaLive.Index do
 
     attrs =
       if attrs["media_type"] == "image" and content do
-        if String.downcase(Path.extname(content)) == ".gif",
-          do: Map.put(attrs, "media_type", "gif"),
-          else: attrs
+        if String.downcase(Path.extname(content)) == ".gif" do
+          attrs
+          |> Map.put("media_type", "gif")
+          |> Map.put("marquee", "none")
+        else
+          attrs
+        end
       else
         attrs
       end
@@ -252,23 +256,40 @@ defmodule EsotericDisplayMgrWeb.MediaLive.Index do
               </div>
             <% end %>
 
-            <.input
-              type="select"
-              field={@form[:marquee]}
-              label="Marquee"
-              options={[
-                None: "none",
-                "Left to Right": "ltr",
-                "Right to Left": "rtl",
-                "Top to Bottom": "utd",
-                "Bottom to Top": "dtu"
-              ]}
-            />
+            <% is_gif_upload? =
+              @form[:media_type].value == "image" and
+                Enum.any?(@uploads.media_file.entries, fn entry ->
+                  String.ends_with?(String.downcase(entry.client_name), ".gif")
+                end) %>
+
+            <%= if is_gif_upload? do %>
+              <input type="hidden" name={@form[:marquee].name} value="none" />
+              <.input
+                type="select"
+                field={@form[:marquee]}
+                label="Marquee"
+                options={[None: "none"]}
+                disabled
+              />
+            <% else %>
+              <.input
+                type="select"
+                field={@form[:marquee]}
+                label="Marquee"
+                options={[
+                  None: "none",
+                  "Left to Right": "ltr",
+                  "Right to Left": "rtl",
+                  "Top to Bottom": "utd",
+                  "Bottom to Top": "dtu"
+                ]}
+              />
+            <% end %>
             <.input
               type="select"
               field={@form[:sizing]}
               label="Sizing"
-              options={[Stretch: "stretch", Zoom: "zoom"]}
+              options={[Stretch: "stretch", Zoom: "zoom", Crop: "crop"]}
             />
 
             <div :if={@can_protect?} class="flex items-end pb-2">
@@ -354,16 +375,24 @@ defmodule EsotericDisplayMgrWeb.MediaLive.Index do
             <form phx-change="update_media">
               <input type="hidden" name="item_id" value={item.id} />
               <div class="flex flex-col gap-2">
-                <select name="marquee" class="select select-bordered select-xs w-full max-w-xs">
-                  <option value="none" selected={item.marquee == :none}>None</option>
-                  <option value="ltr" selected={item.marquee == :ltr}>Left to Right</option>
-                  <option value="rtl" selected={item.marquee == :rtl}>Right to Left</option>
-                  <option value="utd" selected={item.marquee == :utd}>Top to Bottom</option>
-                  <option value="dtu" selected={item.marquee == :dtu}>Bottom to Top</option>
-                </select>
+                <%= if item.media_type == :gif do %>
+                  <input type="hidden" name="marquee" value="none" />
+                  <select class="select select-bordered select-xs w-full max-w-xs" disabled>
+                    <option value="none" selected>None</option>
+                  </select>
+                <% else %>
+                  <select name="marquee" class="select select-bordered select-xs w-full max-w-xs">
+                    <option value="none" selected={item.marquee == :none}>None</option>
+                    <option value="ltr" selected={item.marquee == :ltr}>Left to Right</option>
+                    <option value="rtl" selected={item.marquee == :rtl}>Right to Left</option>
+                    <option value="utd" selected={item.marquee == :utd}>Top to Bottom</option>
+                    <option value="dtu" selected={item.marquee == :dtu}>Bottom to Top</option>
+                  </select>
+                <% end %>
                 <select name="sizing" class="select select-bordered select-xs w-full max-w-xs">
                   <option value="stretch" selected={item.sizing == :stretch}>Stretch</option>
                   <option value="zoom" selected={item.sizing == :zoom}>Zoom</option>
+                  <option value="crop" selected={item.sizing == :crop}>Crop</option>
                 </select>
               </div>
             </form>
