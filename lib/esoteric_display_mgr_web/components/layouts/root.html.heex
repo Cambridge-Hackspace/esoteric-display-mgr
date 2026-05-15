@@ -137,6 +137,24 @@
               <.icon name="hero-server-stack" class="size-4" /> Streams
             </.link>
           </li>
+
+          <div
+            :if={EsotericDisplayMgr.Accounts.has_permission?(@current_scope, ["media:manage"])}
+            class="divider my-2"
+          >
+          </div>
+
+          <li
+            :if={EsotericDisplayMgr.Accounts.has_permission?(@current_scope, ["media:manage"])}
+            class="menu-title"
+          >
+            Content
+          </li>
+          <li :if={EsotericDisplayMgr.Accounts.has_permission?(@current_scope, ["media:manage"])}>
+            <.link navigate={~p"/admin/media"}>
+              <.icon name="hero-photo" class="size-4" /> Media Library
+            </.link>
+          </li>
         </ul>
       </aside>
       <main class="flex-1 overflow-y-auto p-6 sm:p-8 lg:p-10">

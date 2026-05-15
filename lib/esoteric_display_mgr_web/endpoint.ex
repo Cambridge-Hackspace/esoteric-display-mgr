@@ -24,7 +24,7 @@ defmodule EsotericDisplayMgrWeb.Endpoint do
     at: "/",
     from: :esoteric_display_mgr,
     gzip: not code_reloading?,
-    only: EsotericDisplayMgrWeb.static_paths(),
+    only: EsotericDisplayMgrWeb.static_paths() ++ ["uploads"],
     raise_on_missing_only: code_reloading?
 
   # Code reloading can be explicitly enabled under the
