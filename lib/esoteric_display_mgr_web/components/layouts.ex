@@ -95,31 +95,34 @@ defmodule EsotericDisplayMgrWeb.Layouts do
   """
   def theme_toggle(assigns) do
     ~H"""
-    <div class="card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full">
-      <div class="absolute w-1/3 h-full rounded-full border-1 border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 transition-[left]" />
+    <div class="relative flex items-center bg-base-300 rounded-full p-1 shadow-inner w-[104px]">
+      <div class="absolute w-8 h-8 rounded-full bg-base-100 shadow-sm left-1 top-1 translate-x-0 [[data-theme=light]_&]:translate-x-8 [[data-theme=dark]_&]:translate-x-16 transition-transform duration-300 ease-out z-0" />
 
       <button
-        class="flex p-2 cursor-pointer w-1/3"
+        class="flex items-center justify-center cursor-pointer w-8 h-8 relative z-10"
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="system"
       >
-        <.icon name="hero-computer-desktop-micro" class="size-4 opacity-75 hover:opacity-100" />
+        <.icon
+          name="hero-computer-desktop-micro"
+          class="size-4 opacity-75 hover:opacity-100 pointer-events-none"
+        />
       </button>
 
       <button
-        class="flex p-2 cursor-pointer w-1/3"
+        class="flex items-center justify-center cursor-pointer w-8 h-8 relative z-10"
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="light"
       >
-        <.icon name="hero-sun-micro" class="size-4 opacity-75 hover:opacity-100" />
+        <.icon name="hero-sun-micro" class="size-4 opacity-75 hover:opacity-100 pointer-events-none" />
       </button>
 
       <button
-        class="flex p-2 cursor-pointer w-1/3"
+        class="flex items-center justify-center cursor-pointer w-8 h-8 relative z-10"
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="dark"
       >
-        <.icon name="hero-moon-micro" class="size-4 opacity-75 hover:opacity-100" />
+        <.icon name="hero-moon-micro" class="size-4 opacity-75 hover:opacity-100 pointer-events-none" />
       </button>
     </div>
     """
