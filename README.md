@@ -1,18 +1,15 @@
 # Esoteric Display Manager (esoteric-display-mgr)
 
-To start your Phoenix server:
+A display manager for, well, esoteric displays. Like
+[traffic lights](https://github.com/Cambridge-Hackspace/traffic-light-display), for example.
 
-* Run `mix setup` to install and setup dependencies
-* Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
+Setup, deployment, and usage is mostly documented on the
+[wiki](https://github.com/Cambridge-Hackspace/traffic-light-display/wiki),
+so you can go there to figure out how to use this thing.
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+If you find any bugs, kindly check to see if said bug has already been
+posted as an [issue](https://github.com/Cambridge-Hackspace/esoteric-display-mgr/issues).
 
-Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
+## License
 
-## Learn more
-
-* Official website: https://www.phoenixframework.org/
-* Guides: https://hexdocs.pm/phoenix/overview.html
-* Docs: https://hexdocs.pm/phoenix
-* Forum: https://elixirforum.com/c/phoenix-forum
-* Source: https://github.com/phoenixframework/phoenix
+Released under the [MIT License](https://mit-license.org/).
