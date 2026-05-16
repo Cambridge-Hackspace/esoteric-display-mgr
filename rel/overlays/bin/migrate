@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+cd -P -- "$(dirname -- "$0")"
+exec ./esoteric_display_mgr eval EsotericDisplayMgr.Release.migrate
