@@ -14,12 +14,22 @@ export const DDPPlayer = {
       }
 
       if (!frames || frames.length === 0) return;
-      this.renderDDP(frames[0]);
+      const renderFrame = (frameData) => {
+        if (Array.isArray(frameData)) {
+          for (const chunk of frameData) {
+            this.renderDDP(chunk);
+          }
+        } else {
+          this.renderDDP(frameData);
+        }
+      };
 
+      renderFrame(frames[0]);
+      
       if (frames.length > 1) {
         let currentFrame = 1;
         this.timer = setInterval(() => {
-          this.renderDDP(frames[currentFrame]);
+          renderFrame(frames[currentFrame]);
           currentFrame = (currentFrame + 1) % frames.length;
         }, 100);
       }
