@@ -14,20 +14,13 @@ defmodule EsotericDisplayMgr.Stream.DDP do
   @flag_query 0x02
   @flag_push 0x01
 
-  # Data Types
-  @type_undefined 0x00
-  @type_rgb24 0x01
-  @type_hsl 0x02
-  @type_rgbw32 0x03
-  @type_grayscale 0x04
-  @type_control 0x0A
-
   @doc """
   Encodes payload data into a DDP packet.
 
   Options:
   - `:sequence` (0-15, default 0)
-  - `:type` (e.g. :rgb24, :grayscale, default: rgb24)
+  - `:type` (e.g. :rgb, :grayscale, default: :rgb)
+  - `:bit` (bits per channel: 1, 4, 8, 16, 23, 32, default 8)
   - `:dest_id` (0-255, default 0)
   - `:offset` (32-bit integer, default 0)
   - `:push` (boolean, default true)
@@ -38,7 +31,10 @@ defmodule EsotericDisplayMgr.Stream.DDP do
     offset = Keyword.get(opts, :offset, 0)
     push? = Keyword.get(opts, :push, true)
 
-    type_byte = encode_type(Keyword.get(opts, :type, :rgb24))
+    type_atom = Keyword.get(opts, :type, :rgb)
+    bits = Keyword.get(opts, :bits, 8)
+
+    type_byte = encode_type(type_atom, bits)
     flags = @version1
     flags = if push?, do: flags ||| @flag_push, else: flags
 
@@ -69,6 +65,8 @@ defmodule EsotericDisplayMgr.Stream.DDP do
         {:error, :payload_too_short}
 
       true ->
+        {type, bits} = decode_type(type_byte)
+
         {:ok,
          %{
            push?: (flags &&& @flag_push) != 0,
@@ -77,7 +75,8 @@ defmodule EsotericDisplayMgr.Stream.DDP do
            storage?: (flags &&& @flag_storage) != 0,
            timecode?: (flags &&& @flag_timecode) != 0,
            sequence: sequence,
-           type: decode_type(type_byte),
+           type: type,
+           bits: bits,
            dest_id: dest_id,
            offset: offset,
            length: length,
@@ -88,17 +87,57 @@ defmodule EsotericDisplayMgr.Stream.DDP do
 
   def decode(_), do: {:error, :malformed_packet}
 
-  defp encode_type(:rgb24), do: @type_rgb24
-  defp encode_type(:hsl), do: @type_hsl
-  defp encode_type(:rgbw32), do: @type_rgbw32
-  defp encode_type(:grayscale), do: @type_grayscale
-  defp encode_type(:control), do: @type_control
-  defp encode_type(_), do: @type_undefined
+  defp encode_type(:control, _), do: 0x0A
 
-  defp decode_type(@type_rgb24), do: :rgb24
-  defp decode_type(@type_hsl), do: :hsl
-  defp decode_type(@type_rgbw32), do: :rgbw32
-  defp decode_type(@type_grayscale), do: :grayscale
-  defp decode_type(@type_control), do: :control
-  defp decode_type(_), do: :undefined
+  defp encode_type(type, bits) do
+    ttt =
+      case type do
+        :rgb -> 1
+        :hsl -> 2
+        :rgbw -> 3
+        :grayscale -> 4
+        _ -> 0
+      end
+
+    sss =
+      case bits do
+        1 -> 1
+        4 -> 2
+        8 -> 3
+        16 -> 4
+        24 -> 5
+        32 -> 6
+        _ -> 0
+      end
+
+    ttt <<< 3 ||| sss
+  end
+
+  defp decode_type(0x0A), do: {:control, 0}
+
+  defp decode_type(byte) do
+    ttt = byte >>> 3 &&& 0b111
+    sss = byte &&& 0b111
+
+    type =
+      case ttt do
+        1 -> :rgb
+        2 -> :hsl
+        3 -> :rgbw
+        4 -> :grayscale
+        _ -> :undefined
+      end
+
+    bits =
+      case sss do
+        1 -> 1
+        2 -> 4
+        4 -> 8
+        5 -> 24
+        6 -> 32
+        _ -> 0
+      end
+
+    {type, bits}
+  end
 end

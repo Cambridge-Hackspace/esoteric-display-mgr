@@ -13,7 +13,7 @@ defmodule EsotericDisplayMgr.Accounts.Permissions do
     "stream:manage",
     "priority:manage",
     "priority:override",
-    "roles:manage"
+    "roles:manage" | Enum.map(0..7, &"priority:cap:#{&1}")
   ]
 
   @doc """

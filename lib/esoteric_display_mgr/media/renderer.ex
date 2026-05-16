@@ -348,19 +348,21 @@ defmodule EsotericDisplayMgr.Media.Renderer do
           img = bandjoin!(img, w_band)
           raw_binary = to_binary!(img)
 
-          {raw_binary, :rgbw32}
+          {raw_binary, :rgbw}
 
         _ ->
           {:ok, img} = Image.to_colorspace(img, :srgb)
           {:ok, img} = Image.cast(img, format)
           raw_binary = to_binary!(img)
-          {raw_binary, :rgb24}
+          {raw_binary, :rgb}
       end
 
     {raw_pixels, ddp_type, display.bits_per_channel}
   end
 
   # --- 6. RENDERING ---
+
+  @max_payload_size 1440
 
   defp rendering(colorized_frames) do
     colorized_frames
@@ -370,9 +372,44 @@ defmodule EsotericDisplayMgr.Media.Renderer do
 
       raw_pixels
       |> adjust_bit_depth(bits)
-      |> DDP.encode(sequence: sequence, type: ddp_type, dest_id: 0)
-      |> Base.encode64()
+      |> chunk_and_encode(0, sequence, ddp_type, bits)
     end)
+  end
+
+  defp chunk_and_encode(<<>>, _offset, _sequence, _type, _bits), do: []
+
+  defp chunk_and_encode(payload, offset, sequence, type, bits)
+       when byte_size(payload) > @max_payload_size do
+    <<chunk::binary-size(@max_payload_size), rest::binary>> = payload
+
+    packet =
+      DDP.encode(chunk,
+        sequence: sequence,
+        type: type,
+        bits: bits,
+        dest_id: 0,
+        offset: offset,
+        push: false
+      )
+
+    [
+      Base.encode64(packet)
+      | chunk_and_encode(rest, offset + @max_payload_size, sequence, type, bits)
+    ]
+  end
+
+  defp chunk_and_encode(payload, offset, sequence, type, bits) do
+    packet =
+      DDP.encode(payload,
+        sequence: sequence,
+        type: type,
+        bits: bits,
+        dest_id: 0,
+        offset: offset,
+        push: true
+      )
+
+    [Base.encode64(packet)]
   end
 
   defp adjust_bit_depth(binary, 1), do: for(<<c::8 <- binary>>, into: <<>>, do: <<bsr(c, 7)::8>>)

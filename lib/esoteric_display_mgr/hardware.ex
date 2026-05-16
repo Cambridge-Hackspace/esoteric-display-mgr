@@ -80,6 +80,12 @@ defmodule EsotericDisplayMgr.Hardware do
            |> Display.changeset(attrs, scope)
            |> Repo.insert() do
       broadcast_display(scope, {:created, display})
+
+      DynamicSupervisor.start_child(
+        EsotericDisplayMgr.Hardware.DisplaySupervisor,
+        {EsotericDisplayMgr.Hardware.DisplayServer, display.id}
+      )
+
       {:ok, display}
     end
   end
@@ -104,6 +110,14 @@ defmodule EsotericDisplayMgr.Hardware do
            |> Display.changeset(attrs, scope)
            |> Repo.update() do
       broadcast_display(scope, {:updated, display})
+
+      Phoenix.PubSub.broadcast(
+        EsotericDisplayMgr.PubSub,
+        "display_queue:#{display.id}",
+        :display_updated
+      )
+
+      Phoenix.PubSub.broadcast(EsotericDisplayMgr.PubSub, "media:updates", :reevaluate)
       {:ok, display}
     end
   end
@@ -126,6 +140,15 @@ defmodule EsotericDisplayMgr.Hardware do
     with {:ok, display = %Display{}} <-
            Repo.delete(display) do
       broadcast_display(scope, {:deleted, display})
+
+      case Registry.lookup(EsotericDisplayMgr.DisplayRegistry, display.id) do
+        [{pid, _}] ->
+          DynamicSupervisor.terminate_child(EsotericDisplayMgr.Hardware.DisplaySupervisor, pid)
+
+        _ ->
+          :ok
+      end
+
       {:ok, display}
     end
   end

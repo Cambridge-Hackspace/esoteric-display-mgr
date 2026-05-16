@@ -4,12 +4,15 @@ defmodule EsotericDisplayMgr.Stream.Manager do
   @doc """
   Spawns a new UDP server dynamically and returns the allocated port.
   """
-  def open_stream(user, displays) do
-    spec = {UDPServer, [user_id: user.id, owner_email: user.email, displays: displays]}
+  def open_stream(user, displays, priority \\ 7) do
+    spec =
+      {UDPServer,
+       [user_id: user.id, owner_email: user.email, displays: displays, priority: priority]}
 
     case DynamicSupervisor.start_child(EsotericDisplayMgr.StreamSupervisor, spec) do
       {:ok, pid} ->
         port = GenServer.call(pid, :get_port)
+        Phoenix.PubSub.broadcast(EsotericDisplayMgr.PubSub, "media:updates", :reevaluate)
         {:ok, port}
 
       error ->
@@ -33,7 +36,8 @@ defmodule EsotericDisplayMgr.Stream.Manager do
           port: port,
           owner_id: meta[:user_id],
           owner_email: meta[:owner_email],
-          display_labels: meta[:display_labels] || []
+          display_labels: meta[:display_labels] || [],
+          priority: meta[:priority] || 7
         }
       end)
 
@@ -55,6 +59,7 @@ defmodule EsotericDisplayMgr.Stream.Manager do
       [{pid, %{user_id: owner_id}}] ->
         if owner_id == scope.user.id or can_manage? do
           DynamicSupervisor.terminate_child(EsotericDisplayMgr.StreamSupervisor, pid)
+          Phoenix.PubSub.broadcast(EsotericDisplayMgr.PubSub, "media:updates", :reevaluate)
           :ok
         else
           {:error, :unauthorized}
@@ -65,8 +70,8 @@ defmodule EsotericDisplayMgr.Stream.Manager do
     end
   end
 
-  def close_stream(%EsotericDisplayMgr.Accounts.User{} = user, post) do
+  def close_stream(%EsotericDisplayMgr.Accounts.User{} = user, port) do
     scope = %EsotericDisplayMgr.Accounts.Scope{user: user}
-    close_stream(scope, post)
+    close_stream(scope, port)
   end
 end
