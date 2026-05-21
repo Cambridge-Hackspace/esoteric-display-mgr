@@ -1,0 +1,1 @@
+import theme from "./daisyui-theme.js"; export default theme.default ?? theme;

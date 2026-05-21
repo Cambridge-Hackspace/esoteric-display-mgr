@@ -57,6 +57,7 @@ config :esbuild,
 # Configure tailwind (the version is required)
 config :tailwind,
   version: "4.1.12",
+  path: System.find_executable("tailwindcss"),
   esoteric_display_mgr: [
     args: ~w(
       --input=assets/css/app.css

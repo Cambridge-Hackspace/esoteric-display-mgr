@@ -1,0 +1,1 @@
+import daisyui from "./daisyui.js"; export default daisyui.default ?? daisyui;
