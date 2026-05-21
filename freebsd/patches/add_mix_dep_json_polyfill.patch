@@ -1,0 +1,13 @@
+diff --git a/mix.exs b/mix.exs
+index aef7a13..84be980 100644
+--- a/mix.exs
++++ b/mix.exs
+@@ -67,6 +67,7 @@ defmodule EsotericDisplayMgr.MixProject do
+       {:jason, "~> 1.2"},
+       {:dns_cluster, "~> 0.2.0"},
+       {:bandit, "~> 1.5"},
+-      {:image, "~> 0.64"}
++      {:image, "~> 0.64"},
++      {:json_polyfill, "~> 0.2"}
+     ]
+   end
