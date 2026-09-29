@@ -9,15 +9,15 @@ config :esoteric_display_mgr, EsotericDisplayMgrWeb.Endpoint,
   cache_static_manifest: "priv/static/cache_manifest.json"
 
 # Force using SSL in production. This also sets the "strict-security-transport" header,
-# known as HSTS. If you have a health check endpoint, you may want to exclude it below.
-# Note `:force_ssl` is required to be set at compile-time.
+# known as HSTS.
+# Note `:force_ssl` is required to be set at compile-time. Which hosts are let
+# off the redirect is a property of where the app is deployed, not of the
+# build, so that part is a function that looks the list up when a request
+# arrives. The list itself comes from PHX_SSL_EXCLUDE_HOSTS in runtime.exs.
 config :esoteric_display_mgr, EsotericDisplayMgrWeb.Endpoint,
   force_ssl: [
     rewrite_on: [:x_forwarded_proto],
-    exclude: [
-      # paths: ["/health"],
-      hosts: ["localhost", "127.0.0.1"]
-    ]
+    exclude: {EsotericDisplayMgrWeb.ForceSSL, :excluded?, []}
   ]
 
 # Configure Swoosh API Client

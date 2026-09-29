@@ -47,19 +47,49 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
+  # Everything that differs from one machine to the next comes from the
+  # environment, so that the same build runs anywhere and nobody has to edit
+  # this file on a server to make it fit.
+
+  # The name, port and scheme the outside world uses. These only shape the
+  # links the app generates; what it listens on is PORT and PHX_BIND below.
   host = System.get_env("PHX_HOST") || "example.com"
+  url_port = String.to_integer(System.get_env("PHX_URL_PORT") || "443")
+  url_scheme = System.get_env("PHX_URL_SCHEME") || "https"
+
+  # The address to listen on. The default is the IPv6 wildcard, which on most
+  # systems takes IPv4 connections too. Where it does not (a BSD with
+  # net.inet6.ip6.v6only=1, or a host with IPv6 switched off), set this to
+  # 0.0.0.0. Use ::1 or 127.0.0.1 to listen on this machine only.
+  bind = System.get_env("PHX_BIND") || "::"
+
+  bind_ip =
+    case :inet.parse_address(String.to_charlist(bind)) do
+      {:ok, ip} ->
+        ip
+
+      {:error, _} ->
+        raise """
+        environment variable PHX_BIND is not an IP address: #{inspect(bind)}
+        For example: :: or 0.0.0.0 or 127.0.0.1
+        """
+    end
+
+  # Hosts that may be reached over plain http without being redirected to
+  # https, as a comma-separated list. See EsotericDisplayMgrWeb.ForceSSL.
+  ssl_exclude_hosts =
+    (System.get_env("PHX_SSL_EXCLUDE_HOSTS") || "localhost,127.0.0.1")
+    |> String.split(",", trim: true)
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+
+  config :esoteric_display_mgr, :ssl_exclude_hosts, ssl_exclude_hosts
 
   config :esoteric_display_mgr, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
   config :esoteric_display_mgr, EsotericDisplayMgrWeb.Endpoint,
-    url: [host: host, port: 443, scheme: "https"],
-    http: [
-      # Enable IPv6 and bind on all interfaces.
-      # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
-      # See the documentation on https://hexdocs.pm/bandit/Bandit.html#t:options/0
-      # for details about using IPv6 vs IPv4 and loopback vs public addresses.
-      ip: {0, 0, 0, 0, 0, 0, 0, 0}
-    ],
+    url: [host: host, port: url_port, scheme: url_scheme],
+    http: [ip: bind_ip],
     secret_key_base: secret_key_base
 
   # ## SSL Support
