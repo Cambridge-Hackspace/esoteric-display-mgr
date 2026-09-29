@@ -1,0 +1,75 @@
+#!/bin/sh
+#
+# PROVIDE: edm
+# REQUIRE: LOGIN NETWORKING
+# KEYWORD: shutdown
+#
+# Esoteric Display Manager, run from the release that deploy/build.sh leaves
+# in /usr/local/edm/bin.
+#
+# Add to /etc/rc.conf:
+#
+#   edm_enable="YES"
+#
+# Optional:
+#
+#   edm_runas="edm"                         account the release runs as
+#   edm_home="/usr/local/edm"               where build.sh put everything
+#   edm_env_file="/usr/local/etc/edm.env"   settings and the secret key
+#   edm_logfile="/var/log/edm.log"
+#
+# The settings live in edm_env_file rather than in here or in rc.conf, because
+# one of them is SECRET_KEY_BASE and both of those are world-readable. See
+# deploy/edm.env.sample. The file should be mode 600 and owned by root: rc
+# reads it as root before the release is started as edm_runas.
+
+. /etc/rc.subr
+
+name="edm"
+rcvar="edm_enable"
+
+load_rc_config "$name"
+
+: "${edm_enable:=NO}"
+# Not edm_user: rc.subr claims that name and would wrap the whole command in
+# su(1), leaving daemon(8) unable to write its pidfile or drop privileges.
+: "${edm_runas:=edm}"
+: "${edm_home:=/usr/local/edm}"
+: "${edm_env_file:=/usr/local/etc/edm.env}"
+: "${edm_logfile:=/var/log/edm.log}"
+
+edm_release="${edm_home}/bin/bin/esoteric_display_mgr"
+
+# The release stays in the foreground, so daemon(8) holds it: -P is the pid of
+# the supervisor, which is what rc signals, and -r brings the release back if
+# it dies after a five second pause. daemon drops to the unprivileged account
+# itself, after it has opened the pidfile and the log as root. -f detaches it
+# from the terminal that started it; without that, a "service edm start" typed
+# over ssh holds the session open for as long as the service runs.
+pidfile="/var/run/${name}.pid"
+command="/usr/sbin/daemon"
+command_args="-f -P ${pidfile} -r -R 5 -u ${edm_runas} -t ${name} -o ${edm_logfile} ${edm_release} start"
+
+required_files="${edm_release} ${edm_env_file}"
+
+start_precmd="edm_prestart"
+
+edm_prestart()
+{
+	# daemon(8) starts as root but the release writes as edm_runas.
+	if [ ! -e "${edm_logfile}" ]; then
+		install -o "${edm_runas}" -g "${edm_runas}" -m 640 /dev/null "${edm_logfile}"
+	fi
+
+	# rc starts services with next to nothing in the environment. The release
+	# wants a home to keep its state in and a UTF-8 locale, without which the
+	# Erlang VM complains on every boot and mangles non-ASCII output.
+	export HOME="${edm_home}"
+	export LANG="C.UTF-8"
+	export LC_ALL="C.UTF-8"
+	export PHX_SERVER="true"
+
+	cd "${edm_home}" || return 1
+}
+
+run_rc_command "$1"
